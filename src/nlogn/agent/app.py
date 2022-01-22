@@ -1,86 +1,19 @@
 import sys
+import time
 import json
-import argparse
-from argparse import RawTextHelpFormatter
+import time
+
+import warnings
+warnings.filterwarnings('ignore', message='Certificate for localhost has no')
 
 import requests
 from requests.auth import HTTPBasicAuth
 import schedule
+from schedule import repeat
+import psutil
 
+from nlogn.agent.argparser import parse_args
 
-def job1(*args, **kwargs):
-    pass
-
-def job2(*args, **kwargs):
-    pass
-
-
-def parse_args():
-
-    parser = argparse.ArgumentParser(
-        description=(
-            "my description\n"
-            "goes here\n"
-            "\n"
-            "usage example\n"
-            "\n"
-            "   $ bla bla 3 --foo=1  "
-        ),
-        formatter_class=RawTextHelpFormatter
-    )
-
-    parser.add_argument(
-        "-r",
-        "--relay-host",
-        type=str,
-        default=None,
-        dest="relay_host",
-        help='the url to the relay host'
-    )
-
-    parser.add_argument(
-        "--trust-cert",
-        type=str,
-        default=None,
-        dest="trusted_certificate",
-        help='the certificate of the relay host that is cosidered trusted'
-    )
-
-    parser.add_argument(
-        "-c",
-        "--conf",
-        type=str,
-        default=None,
-        dest="config",
-        help='the path to the configuration file'
-    )
-
-    parser.add_argument(
-        "--user",
-        type=str,
-        default=None,
-        dest="username",
-        help='the username to authenticate on the relay'
-    )
-
-    parser.add_argument(
-        "--pass",
-        type=str,
-        default=None,
-        dest="password",
-        help='the password to be used for the autnetication on the relay'
-    )
-
-    # a count option. the attribute verbosity is set to the number of times this
-    # option is specified in the command line.
-    parser.add_argument(
-        "-v",
-        "--verbosity",
-        action='count',
-        default=0
-    )
-
-    return parser.parse_args()
 
 
 
@@ -96,19 +29,66 @@ if __name__ == '__main__':
         'Accept': 'text/plain',
     }
 
-    data = {
-        'hostname': 'my_host',
-        'firstName': 'John',
-        'lastName': 'Smith'
+    conn = {
+        'url': url,
+        'auth': auth,
+        'headers': headers,
+        'cert': args.trusted_certificate
     }
 
-    requests.post(
-        url,
-        auth=auth,
-        headers=headers,
-        data=json.dumps(data),
-        verify=args.trusted_certificate
-    )
 
-    print('done')
+    def job1(stats=None, connection=None, *args, **kwargs):
+        # if the previous job has completed (if applicable)
+        # then collect the data by e.g executing the command
+        # otherwise skip and wait for next execution
+        #  - if a stuck sitation is detected, log an alarm
+        #
+        stats['a'] += 1
+        print(f'job1 {stats["a"]}')
+        # job1_count += 1
+        # print(job1_count)
+        data = {
+            'hostname': 'my_host',
+            't_start': 'YYYY:MM:DD-HH:mm:ss',  # utc time
+            't_end': 'YYYY:MM:DD-HH:mm:ss',  # utc time
+            'fs_mount': '/',
+            'bytes_total': 11111111,
+            'types_free': 22222222
+        }
 
+    stats_1 = {}
+    stats_1['a'] = 0
+    schedule.every(2).seconds.do(job1, stats=stats_1, connection=conn)
+
+
+    def job2(stats=None, connection=None, *args, **kwargs):
+        stats['a'] += 1
+        pct_cpu = psutil.cpu_percent()
+        print(f'job2 {stats["a"]}')
+
+        data = {
+            'hostname': 'my_host',
+            't_start': 'YYYY:MM:DD-HH:mm:ss',  # utc time
+            't_end': 'YYYY:MM:DD-HH:mm:ss',  # utc time
+            'pct_cpu': pct_cpu
+        }
+
+        requests.post(
+            connection['url'],
+            auth=connection['auth'],
+            headers=connection['headers'],
+            data=json.dumps(data),
+            verify=connection['cert']
+        )
+
+        stats['a'] += 1
+        print(stats['a'])
+
+    stats_2 = {}
+    stats_2['a'] = 0
+    schedule.every(2).seconds.do(job2, stats=stats_2, connection=conn)
+
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+        print('done')

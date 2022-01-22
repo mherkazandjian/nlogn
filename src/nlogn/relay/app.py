@@ -48,6 +48,9 @@ def relay_data():
         json = request.json
         print('got the following json data')
         print('\t', json)
+        # add the receive timestamp
+        # right before ingestion add the ingest time (it seems it can be
+        # done at the elsticsearch level?? check it out
         return json
     else:
         return 'Content-Type not supported!'
