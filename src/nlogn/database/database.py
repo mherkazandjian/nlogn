@@ -12,7 +12,7 @@ import pandas as pd
 from nlogn.loggers.logger import log
 
 
-class Mapping(object):
+class Mapping:
     """
     Wrapper around the elasticsearch type mapping
     """
@@ -43,7 +43,7 @@ class Mapping(object):
         return retval
 
 
-class DatabaseBase(object):
+class DatabaseBase:
     """
     Base class for interacting with elasticsearch
     """
@@ -606,7 +606,7 @@ class Database_v7(DatabaseBase):
         return Mapping(_mapping)
 
 
-class Database(object):
+class Database:
     """
     Factory class for the ElasticSearch implementations
     """

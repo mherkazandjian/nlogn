@@ -38,7 +38,7 @@ if __name__ == '__main__':
         'cert': args.trusted_certificate
     }
 
-    def job2(stats=None, connection=None, *args, **kwargs):
+    def pipeline_1(stats=None, connection=None, *args, **kwargs):
         stats['a'] += 1
         pct_cpu = psutil.cpu_percent()
         print(f'job2 {stats["a"]}')
@@ -47,13 +47,20 @@ if __name__ == '__main__':
         timestamp = t.strftime('%Y-%m-%dT%H:%M:%S')
         print(timestamp)
 
+        # the last job in a pipeline publishes the data
+        # the data is a dict with the key value is the job name
+        # in the case of the last job in the pipeline the name of the
+        # key is the name of the pipeline.
+        # a pipeline with a single job in that case that job is the pipeline
+        # the last job in the pipeline is by default called the same as the
+        # pipeline name
         data = {
-            'job_name': 'job2',
-            'pipeline': 'pipelinex',
-            'hostname': 'my_host',
-            't_start': timestamp,
-            't_end': timestamp,
-            'pct_cpu': pct_cpu
+            'pipeline_1': {
+                'timestamp': timestamp,
+                'host': 'my_host',
+                'duration': 0.1,
+                'pct_cpu': pct_cpu
+            }
         }
 
         requests.post(
@@ -69,7 +76,7 @@ if __name__ == '__main__':
 
     stats_2 = {}
     stats_2['a'] = 0
-    schedule.every(2).seconds.do(job2, stats=stats_2, connection=conn)
+    schedule.every(2).seconds.do(pipeline_1, stats=stats_2, connection=conn)
 
     while True:
         schedule.run_pending()

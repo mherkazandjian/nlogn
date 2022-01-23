@@ -7,6 +7,41 @@ from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash
 from werkzeug.security import check_password_hash
 
+from nlogn.loggers.logger import log
+from nlogn.database.database import Database
+
+url = 'localhost:8200'
+esdb = Database(url=url)
+
+pipelines = {
+    'pipeline_1': {
+        'mapping': {
+            "timestamp": {
+                "type": "date",
+                "format": "strict_date_optional_time||epoch_millis"
+            },
+            "host": {"type": "keyword"},
+            "duration": {"type": "float"},
+            "pct_cpu": {"type": "float"}
+        }
+    }
+}
+
+cluster_name = 'my_cluster'
+index_prefix = f'{cluster_name}@'
+for pipeline_name in pipelines:
+    index_name = f'{index_prefix}{pipeline_name}'
+    mapping = pipelines[pipeline_name]['mapping']
+    esdb.delete_index(index_name, verbose=True)
+    esdb.create_index(
+        name=index_name,
+        mapping=mapping
+    )
+
+print('indices in the database:')
+for index_name in esdb.indices():
+    print(f'\t{index_name}')
+
 app = Flask(__name__)
 auth = HTTPBasicAuth()
 
@@ -48,6 +83,16 @@ def relay_data():
         json = request.json
         print('got the following json data')
         print('\t', json)
+
+        data = json
+        index_prefix = f'{cluster_name}@'
+        pipeline_name = list(data.keys())[0]
+        record = data[pipeline_name]
+        index_name = f'{index_prefix}{pipeline_name}'
+        # .. todo:: implement a safe ingest method similar to ingest_dataframe
+        # in the Database class
+        print(esdb.db.index(index=index_name, document=record))
+
         # add the receive timestamp
         # right before ingestion add the ingest time (it seems it can be
         # done at the elsticsearch level?? check it out
