@@ -17,10 +17,7 @@ from dateutil.tz import tzutc
 from nlogn.agent.argparser import parse_args
 
 
-
-
-if __name__ == '__main__':
-
+def main():
     args = parse_args()
 
     url = f'{args.relay_host}/relay_data'
@@ -82,3 +79,8 @@ if __name__ == '__main__':
         schedule.run_pending()
         time.sleep(1)
         print('done')
+
+
+
+if __name__ == '__main__':
+    main()
