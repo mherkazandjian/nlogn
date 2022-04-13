@@ -1,0 +1,64 @@
+---
+stages:
+  - disks
+  - networks
+
+
+.disk_usage:
+  stage: disks
+  timeout: 5
+  max_attempts: 10
+  cadence_multiplier: 2
+  when:
+    cadence: 10
+    unit: seconds
+
+
+.disk_usage_kb:
+  extends: .disk_usage
+  nlogn.builtin.command:
+    cmd: df -bk {{MOUNT_POINT}}
+  transform:
+    nlogn.builtin.df_command:
+      output_columns:
+        - filesystem
+        - mount_point
+        - bytes_total
+        - bytes_used
+      unit: kb
+
+
+.disk_usage_inodes:
+  extends: .disk_usage
+  nlogn.builtin.command:
+    cmd: df -i $MOUNT_POINT
+  transform:
+    nlogn.builtin.df_command:
+      output_columns:
+        - filesystem
+        - mount_point
+        - inodes_total
+        - inodes_used
+      unit: kb
+
+
+root_part_usage:
+  extends: .disk_usage_kb
+  variables:
+    MOUNT_POINT: /root
+
+root_part_usage_inodes:
+  extends: .disk_usage_inodes
+  variables:
+    MOUNT_POINT: /root
+
+shm_part_usage:
+  extends: .disk_usage_kb
+  variables:
+    MOUNT_POINT: /dev/shm
+
+shm_part_usage_inodes:
+  extends: .disk_usage_inodes
+  variables:
+    MOUNT_POINT: /dev/shm
+...

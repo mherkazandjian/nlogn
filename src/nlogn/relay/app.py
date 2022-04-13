@@ -10,7 +10,8 @@ from werkzeug.security import check_password_hash
 from nlogn.loggers.logger import log
 from nlogn.database.database import Database
 
-url = 'localhost:8200'
+assert 'DATABASE' in os.environ
+url = os.environ.get('DATABASE')  # localhost:9200'
 esdb = Database(url=url)
 
 pipelines = {

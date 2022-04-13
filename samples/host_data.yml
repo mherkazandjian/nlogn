@@ -1,0 +1,139 @@
+---
+home-dir-usage:
+  unit: bytes
+  partition: home
+  category: storage
+  nlogn.builtin.command:
+    cmd: df -p /home
+  timeout: 5
+  max_attempts: 10
+  cadence_multiplier: 2
+  when:
+    cadence: 10
+    unit: seconds
+  filter:
+    hostnames:
+      - homenfsserver01
+
+
+mount_points_mounted:
+  unit: bool
+  mount_points:
+    - home
+    - apps
+  category: storage
+  nlogn.builtin.command:
+    cmd: df -p {{item}}
+  timeout: 5
+  max_attempts: 10
+  cadence_multiplier: 2
+  when:
+    cadence: 10
+    unit: seconds
+  loop:
+    mount_points
+
+network-interfaces:
+  stage: networks
+  nlogn.builtin.command:
+    cmd: /path/to/some/foo/script/bar.sh
+    cwd: /path/to/dir/to/exec/command/in
+    args:
+      arg1
+      arg2
+  transforms:
+    - module.function1
+    - module.function2
+    - module.function3
+
+.disk-usage:
+  stage: disks
+  timeout: 5
+  max_attempts: 10
+  cadence_multiplier: 2      # everytime the process fails run again cadence*candance_multiplier later
+  when:
+    cadence: 10
+    unit: seconds
+    cron: "45 17 */2  * *"   # either specify a cadence or specify a cron like entry
+  transform:
+    nlogn.builtin.df_command:
+      output_columns:
+        - mount_point
+        - bytes_total
+        - bytes_used
+
+
+# .. todo:: prabably can be lumped into the home dir usage as a loop
+apps-dir-usage:
+  unit: bytes
+  partition: home
+  category: storage
+  nlogn.builtin.command:
+    cmd: df -p /home
+  timeout: 5
+  max_attempts: 10
+  cadence_multiplier: 2
+  when:
+    cadence: 10
+    unit: seconds
+  filter_host:
+    - homenfsserver01
+
+
+generic_partitions:
+  unit: bytes
+  partition: home
+  category: storage
+  nlogn.builtin.command:
+    cmd: df -p /home
+  timeout: 5
+  max_attempts: 10
+  cadence_multiplier: 2
+  when:
+    cadence: 10
+    unit: seconds
+  filter_host:
+    - homenfsserver01
+
+
+scheduler_1:
+  timeout: 5
+  max_attempts: 10
+  cadence_multiplier: 2
+  when:
+    cadence: 10
+    unit: seconds
+
+
+network_interfaces_statistics:
+  scheduler: scheduler_1   # inherits the timing and candene info of "scheduler_1"
+  nlogn.builtin.command:
+    cmd: ip -j -s link | jq -c '.[] | select(.ifname == "eno1")'  # .. todo:: figure out how to extrat the needed values after filtering by inteface name
+
+
+network_interfaces_statistics_another_method:
+  scheduler: scheduler_1   # inherits the timing and candene info of "scheduler_1"
+  nlogn.builtin.command:
+    cmd: ip -j -s link
+  apply:
+    module:
+      nlogn.builtin.ip_command_statistics
+
+active_users_on_hosts:
+  # .. todo:: think how to do this
+  # .. todo:: how to include e.g the dept / faculty? in a pipeline? in a users index?
+  #           a users index that gets populated on the way then gets ingested once full?
+
+scheduler_info:
+  .....
+  .....
+
+
+pipelines:
+  - hosts_statistics
+  - cluster_statistics
+  - usage_by_app
+  - usage_by_user
+  - usage_by_dept
+  - usage_by_faculty
+...
