@@ -1,7 +1,8 @@
 ---
 stages:
   - disks
-  - networks
+  - nfs
+  - ceph
 
 
 .disk_usage:
@@ -17,7 +18,7 @@ stages:
 .disk_usage_kb:
   extends: .disk_usage
   nlogn.builtin.command:
-    cmd: df -bk {{MOUNT_POINT}}
+    cmd: df -bk $MOUNT_POINT
   transform:
     nlogn.builtin.df_command:
       output_columns:

@@ -29,6 +29,7 @@ setup(
         'console_scripts': [
             'nlogn-agent=nlogn.agent.app:main',
             'nlogn-relay=nlogn.relay.flask_app_wrapper:main',
+            'nlogn-pipeline=nlogn.pipeline.app:main',
         ],
     }
 )
