@@ -1,15 +1,13 @@
 import os
 from subprocess import Popen
 import shlex
-import shutil
 
 from .flask_app_wrapper_utils import parse_args
 
 
 def main():
     args = parse_args()
-    # USERS=../../../../conf/relay/users.txt
-    # DATABASE=localhost:8200
+
     cmd = (
         f'flask run '
         f'--host={args.host} '
