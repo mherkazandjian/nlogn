@@ -3,7 +3,9 @@ stages:
   - heatbeat
 
 heatbeat:
+  nlogn.builtin.heartbeat:
   stage: heatbeat
   when:
     cadence: 1
     unit: seconds
+...

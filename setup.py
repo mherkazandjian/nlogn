@@ -27,7 +27,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'nlogn-agent=nlogn.agent.app:main'
+            'nlogn-agent=nlogn.agent.app:main',
+            'nlogn-relay=nlogn.relay.flask_app_wrapper:main',
         ],
     }
 )
