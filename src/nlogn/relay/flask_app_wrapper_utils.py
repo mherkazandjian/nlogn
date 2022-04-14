@@ -6,9 +6,9 @@ def parse_args():
 
     parser = argparse.ArgumentParser(
         description=(
-            "wrapper script that runs the relay flask app\n"
+            "Wrapper script that runs the relay flask app\n"
             "\n"
-            "usage example\n"
+            "Usage example\n"
             "\n"
             "   $ nlogn-relay --users=/path/to/users.txt --database=foo.example.com:9200 --cert=/path/to/public/cert.pem --key=/path/to/private/key.pem"
         ),
