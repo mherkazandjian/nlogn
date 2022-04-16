@@ -69,4 +69,50 @@ shm_part_usage_inodes:
   extends: .disk_usage_inodes
   variables:
     MOUNT_POINT: /dev/shm
+
+
+.nfs_usage_base:
+  stage: nfs
+  timeout:
+    duration: 5
+    max_attempts: 10
+    cadence_multiplier: 2
+  when:
+    cadence: 10
+    unit: seconds
+
+
+.nfs_usage_kb:
+  extends: .nfs_usage_base
+  nlogn.builtin.command:
+    cmd: df -bk $MOUNT_POINT
+  output:
+    transform:
+      - nlogn.builtin.remove_header:
+        - first_line
+    columns:
+      - filesystem
+      - mount_point
+      - bytes_total
+      - bytes_used
+    target: 'name of table or index in es'
+    unit: kb
+
+.nfs_usage_inodes:
+  extends: .nfs_usage_base
+  nlogn.builtin.command:
+    cmd: df -i $MOUNT_POINT
+  transform:
+    nlogn.builtin.df_command:
+      output_columns:
+        - filesystem
+        - mount_point
+        - inodes_total
+        - inodes_used
+      unit: kb
+
+home_part_usage:
+  extends: .nfs_usage_kb
+  variables:
+    MOUNT_POINT: /home
 ...

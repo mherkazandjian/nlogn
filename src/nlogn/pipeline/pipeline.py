@@ -33,13 +33,9 @@ class Pipeline:
         chain = self.find_extends_chain(name=name)
         root_name = chain.pop(0)
         assembled = self.parsed.spec[root_name]
-        #print('-' * 20)
-        #print(yaml.dump(assembled))
         for name in chain:
             extension = self.parsed.spec[name]
             assembled = assembled | extension
-            #print('-'*20)
-            #print(yaml.dump(assembled))
         assembled.pop('extends')
         return assembled
 
@@ -51,7 +47,6 @@ class Pipeline:
                 task_spec = self.assemble_task(name)
             else:
                 task_spec = self.parsed.spec[name]
-            #print(yaml.dump(task))
             self.tasks_specs[name] = task_spec
 
     def assemble_stages(self):
@@ -63,10 +58,14 @@ class Pipeline:
             else:
                 self.stages_specs[stage].append(name)
 
+    def show_specs(self):
+        print(yaml.dump({'stages': self.stages_specs}, explicit_start=True))
+        print(yaml.dump({'tasks': self.tasks_specs}, explicit_start=True))
+
 # get the stages
-# find all the jobs for a certain stage
+# (done)find all the jobs for a certain stage
 # identify the job that outputs out of the pipeline
-# find the hidden stages that are defined to be used as 'extends'
+# (done)find the hidden stages that are defined to be used as 'extends'
 # crawl the directory and see who includes who
 # assembel the full pipelines
 #   - find the unique pipelines
