@@ -5,32 +5,36 @@ stages:
   - ceph
 
 
-.disk_usage:
+.disk_usage_base:
   stage: disks
-  timeout: 5
-  max_attempts: 10
-  cadence_multiplier: 2
+  timeout:
+    duration: 5
+    max_attempts: 10
+    cadence_multiplier: 2
   when:
     cadence: 10
     unit: seconds
 
 
 .disk_usage_kb:
-  extends: .disk_usage
+  extends: .disk_usage_base
   nlogn.builtin.command:
     cmd: df -bk $MOUNT_POINT
-  transform:
-    nlogn.builtin.df_command:
-      output_columns:
-        - filesystem
-        - mount_point
-        - bytes_total
-        - bytes_used
-      unit: kb
+  output:
+    transform:
+      - nlogn.builtin.remove_header:
+        - first_line
+    columns:
+      - filesystem
+      - mount_point
+      - bytes_total
+      - bytes_used
+    target: 'name of table or index in es'
+    unit: kb
 
 
 .disk_usage_inodes:
-  extends: .disk_usage
+  extends: .disk_usage_base
   nlogn.builtin.command:
     cmd: df -i $MOUNT_POINT
   transform:
@@ -48,15 +52,18 @@ root_part_usage:
   variables:
     MOUNT_POINT: /root
 
+
 root_part_usage_inodes:
   extends: .disk_usage_inodes
   variables:
     MOUNT_POINT: /root
 
+
 shm_part_usage:
   extends: .disk_usage_kb
   variables:
     MOUNT_POINT: /dev/shm
+
 
 shm_part_usage_inodes:
   extends: .disk_usage_inodes
