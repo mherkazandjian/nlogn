@@ -59,11 +59,14 @@ class Pipeline:
                 self.stages_specs[stage].append(name)
 
     def show_specs(self):
-        print(yaml.dump({'stages': self.stages_specs}, explicit_start=True))
-        print(yaml.dump({'tasks': self.tasks_specs}, explicit_start=True))
+        print(yaml.dump({'stages': self.stages_specs}, explicit_start=True).replace('---', '').strip())
+        print()
+        for task in self.tasks_specs:
+            print(yaml.dump({task: self.tasks_specs[task]}, explicit_start=True).replace('---', '').strip())
+            print()
 
-# get the stages
-# (done)find all the jobs for a certain stage
+# (done) get the stages
+# (done) find all the jobs for a certain stage
 # identify the job that outputs out of the pipeline
 # (done)find the hidden stages that are defined to be used as 'extends'
 # crawl the directory and see who includes who
