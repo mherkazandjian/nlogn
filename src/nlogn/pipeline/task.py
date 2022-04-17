@@ -35,8 +35,17 @@ class Columns:
 
 
 class Output:
-    def __init__(self):
+    def __init__(self, spec=None):
         self.columns = None
+    def find_transforms(self):
+        """
+        .. todo:: implement these below
+        Find the section of transforms where each is a module as Module objects
+        Find the corresponding modules and insert them into a list
+        Find the input args for each
+        :return: json
+        """
+        pass
 
 
 class ModuleInput:
@@ -50,10 +59,26 @@ class ModuleOutput:
 
 
 class Module:
-    def __init__(self):
-        self.func = None
-        self.input = None
+    def __init__(self, spec=None):
+        func = list(spec.keys()).pop()
+        self.func = func
+        self.input = spec[func]
+        # .. todo:: if the output is a well defined builting on an extension / plugin
+        # .. todo:: that can be looked up where the output can be inferred then
+        # .. todo:: the output is set, otherwise the output is assumed to be plain
+        # .. todo:: text that is supposed to be transformed
         self.output = None
+
+    def find_module_in_paths(self):
+        """get the actual callable method / function"""
+        pass
+
+    def __str__(self):
+        retval = ''
+        retval += f'func: {self.func}\n'
+        retval += f'input: {repr(self.input)}\n'
+        retval += f'output: {repr(self.output)}'
+        return retval
 
 
 class TaskComposer:
@@ -72,7 +97,8 @@ class Task:
     A task that is executed in a pipeline
     """
     def __init__(self, spec=None):
-        self.spec = spec
+        self.name = list(spec.keys()).pop()
+        self.spec = spec[self.name]
         self.status = Undefined
         self.schedule = None
         self.timeout = None
@@ -80,5 +106,26 @@ class Task:
         self.output = None
         self.transforms = None
 
-    def func(self):
+    def find_module(self):
+        for key in self.spec:
+            if key.startswith('nlogn.'):
+                module_spec = self.spec[key]
+                self.module = Module(spec=module_spec)
+                break
+        else:
+            raise KeyError('Task does not have an execution module')
+
+    def find_timeout(self):
+        pass
+
+    def find_output(self):
+        pass
+
+    def find_stage(self):
+        pass
+
+    def find_variables(self):
+        pass
+
+    def find_schedule(self):
         pass

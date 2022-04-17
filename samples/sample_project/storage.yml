@@ -23,7 +23,7 @@ stages:
   output:
     transform:
       - nlogn.builtin.remove_header:
-        - first_line
+          - first_line
     columns:
       - filesystem
       - mount_point
