@@ -62,8 +62,13 @@ class Pipeline:
         print(yaml.dump({'stages': self.stages_specs}, explicit_start=True).replace('---', '').strip())
         print()
         for task in self.tasks_specs:
-            print(yaml.dump({task: self.tasks_specs[task]}, explicit_start=True).replace('---', '').strip())
+            spec = self.task_spec(name=task)
+            print(yaml.dump(spec).replace('---', '').strip())
             print()
+
+    def task_spec(self, name=None):
+        return {name: self.tasks_specs[name]}
+
 
 # (done) get the stages
 # (done) find all the jobs for a certain stage

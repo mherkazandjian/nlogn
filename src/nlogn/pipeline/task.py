@@ -56,19 +56,29 @@ class Module:
         self.output = None
 
 
+class TaskComposer:
+    """
+    Process a task in a pipeline and prepare it for execution
+
+    - replace variables
+    - create multiple tasks based on parameteres (e.g task grid..etc..)
+    """
+    def __init__(self, pipeline=None, name=None):
+        pass
+
+
 class Task:
     """
     A task that is executed in a pipeline
-
-    The specs of the task is passed as a dictionary
     """
-    def __init__(self, spec):
-        pass
+    def __init__(self, spec=None):
+        self.spec = spec
         self.status = Undefined
         self.schedule = None
         self.timeout = None
         self.module = None
         self.output = None
+        self.transforms = None
 
     def func(self):
         pass
