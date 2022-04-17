@@ -1,7 +1,7 @@
 import argparse
 from argparse import RawTextHelpFormatter
 
-from .parser import PipelinePrser
+from .pipeline import Pipeline
 
 
 def parse_args():
@@ -54,7 +54,8 @@ def parse_args():
 
 def main():
     args = parse_args()
-    parser = PipelinePrser()
+    pipeline = Pipeline(args.pipelines)
+    pipeline.show_specs()
 
 
 if __name__ == '__main__':
