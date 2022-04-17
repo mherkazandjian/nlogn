@@ -1,0 +1,18 @@
+---
+stages:
+  - security
+  - general_logs
+  - journalctl
+  - dmesg
+  - gpu_usage
+
+.journalctl:
+  stage: security
+  nlogn.builtin.stream:
+    cmd: journalctl -xe -f
+
+.dmesg:
+  stage: security
+  nlogn.builtin.stream:
+    cmd: dmesg -T --follow
+...
