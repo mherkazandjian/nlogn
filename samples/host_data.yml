@@ -119,6 +119,17 @@ network_interfaces_statistics_another_method:
     module:
       nlogn.builtin.ip_command_statistics
 
+
+network_interfaces_statistics_another_method:
+  scheduler: scheduler_1   # inherits the timing and candene info of "scheduler_1"
+  nlogn.plugins.foo:
+    arg1: 'aaa'
+    arg2: 'bbb'
+    arg3: 'ccc'
+  apply:
+    module:
+      nlogn.builtin.ip_command_statistics
+
 active_users_on_hosts:
   # .. todo:: think how to do this
   # .. todo:: how to include e.g the dept / faculty? in a pipeline? in a users index?
