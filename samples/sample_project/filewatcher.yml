@@ -4,15 +4,20 @@ stages:
   - general_logs
   - journalctl
   - dmesg
-  - gpu_usage
+  - accelerators
 
 .journalctl:
   stage: security
-  nlogn.builtin.stream:
+  nlogn.builtin.monitor.file:
     cmd: journalctl -xe -f
 
 .dmesg:
   stage: security
-  nlogn.builtin.stream:
+  nlogn.builtin.monitor.file:
     cmd: dmesg -T --follow
+
+gpu_usage:
+  stage: accelerators
+  nlogn.builtin.monitor.process:
+    cmd: gpu_hw_usage --every=5s
 ...

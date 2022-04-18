@@ -8,7 +8,7 @@ from .. import Module
 # .. todo:: make sure to document that in the __init__.py each .py
 # .. todo:: should be imported
 
-__virtual_name__ = {
+virtual_name = {
     'command': 'Command'
     # .. todo:: by default the key should have the same name as the module.py
     # .. todo::
@@ -25,6 +25,10 @@ __virtual_name__ = {
     # .. todo:: these two utility classes would be called as:
     # .. todo::   nlogn.foo.bar.util1
     # .. todo::   nlogn.foo.bar.util2
+    # .. todo::
+    # .. todo:: note that in this case searching for nlogn.foo.bar.util2 will fail since
+    # .. todo:: foo/bar/util1.py does not exist, so some checks needs to be done to support
+    # .. todo:: this behavior
 }
 
 
@@ -35,6 +39,7 @@ class Command(Module):
         self.cmd = cmd
 
     def run(self, *args, **kwargs):
+        assert self.cmd is not None
         process = Popen(shlex.split(self.cmd), stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
 
