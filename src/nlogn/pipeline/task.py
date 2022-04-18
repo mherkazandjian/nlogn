@@ -1,10 +1,14 @@
 """
 
 """
+import re
 import importlib
 import yaml
+import pint
 
 import nlogn
+
+_ureg = pint.UnitRegistry()
 
 
 class TaskDefinitionStatus:
@@ -16,13 +20,6 @@ class Partial(TaskDefinitionStatus):
     pass
 class Undefined(TaskDefinitionStatus):
     pass
-
-
-class Timeout:
-    def __init__(self):
-        self.duration = None
-        self.max_attempts = None
-        self.cadence_multiplier = None
 
 
 class MetaTask:
@@ -157,6 +154,32 @@ class TaskComposer:
         self.task.module.py_class = exec_cls
 
 
+class Schedule:
+    def __init__(self):
+        self.interval = None
+        self.cadence_multiplier = None
+    def __str__(self):
+        retval = ""
+        retval += (
+            f'interval: {repr(self.interval)}\n'
+            f'cadence_multiplier: {self.cadence_multiplier}'
+        )
+        return retval
+
+
+class Timeout:
+    def __init__(self):
+        self.duration = None
+        self.max_attempts = None
+    def __str__(self):
+        retval = ""
+        retval += (
+            f'duration: {repr(self.duration)}\n'
+            f'max_attempts: {self.max_attempts}\n'
+        )
+        return retval
+
+
 class Task:
     """
     A task that is executed in a pipeline
@@ -175,10 +198,11 @@ class Task:
 
     def find_module(self):
         """
-        Search for the main module of the task in the task spec
+        Search for the main module of the task in the task spec, e.g nlogn.builtin.command
 
         .. todo:: allow for searching in namespaces other than 'nlogn' in the python path
         """
+        # .. todo:: use a filter pattern here on the key value pairs
         for key in self.spec:
             if key.startswith('nlogn.'):
                 module_spec = self.spec[key]
@@ -187,8 +211,55 @@ class Task:
         else:
             raise KeyError('Task does not have an execution module')
 
-    def find_timeout(self):
-        pass
+    def find_schedule_info(self):
+        """
+        Search for the schedule information and the cadence
+
+        The following and searched for and set:
+
+           - timeout:
+               - duration
+               - max_attempts
+           - when:
+              interval:
+              cadence_multiplier
+           - on_status:
+               - fail:
+               - success:
+               - no_response: (hang)
+               - nlogn.foo.bar
+        """
+        print(self.spec)
+
+        # instantiate and set the values of the schedule object
+        schedule = Schedule()
+        interval = self.spec['when']['interval']
+        if isinstance(interval, int):
+            schedule.interval = interval * _ureg.Quantity('s')
+        elif isinstance(interval, str):
+            match = re.match(r"([0-9]+)([a-z]+)", interval, re.I)
+            value, unit = match.groups()
+            schedule.interval = value * _ureg.Quantity(unit)
+
+        cadence_multiplier = self.spec['when']['cadence_multiplier']
+        schedule.cadence_multiplier = cadence_multiplier
+
+        self.schedule = schedule
+
+        # instantiate and set the values of the timeout object
+        timeout = Timeout()
+        duration = self.spec['timeout']['duration']
+        if isinstance(duration, int):
+            timeout.interval = duration * _ureg.Quantity('s')
+        elif isinstance(duration, str):
+            match = re.match(r"([0-9]+)([a-z]+)", duration, re.I)
+            value, unit = match.groups()
+            timeout.duration = value * _ureg.Quantity(unit)
+
+        max_attempts = self.spec['timeout']['max_attempts']
+        timeout.max_attempts = max_attempts
+
+        self.timeout = timeout
 
     def find_output(self):
         pass

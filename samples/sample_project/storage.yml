@@ -8,12 +8,11 @@ stages:
 .disk_usage_base:
   stage: disks
   timeout:
-    duration: 5
+    duration: 5s
     max_attempts: 10
-    cadence_multiplier: 2
   when:
-    cadence: 10
-    unit: seconds
+    interval: 10s
+    cadence_multiplier: 2
 
 
 .disk_usage_kb:
@@ -74,12 +73,11 @@ shm_part_usage_inodes:
 .nfs_usage_base:
   stage: nfs
   timeout:
-    duration: 5
+    duration: 5s
     max_attempts: 10
-    cadence_multiplier: 2
   when:
-    cadence: 10
-    unit: seconds
+    interval: 10s
+    cadence_multiplier: 2
 
 
 .nfs_usage_kb:
@@ -91,12 +89,11 @@ shm_part_usage_inodes:
       - nlogn.builtin.remove_header:
         - first_line
     columns:
-      - filesystem
-      - mount_point
-      - bytes_total
-      - bytes_used
+      - filesystem[str]
+      - mount_point[str]
+      - bytes_total[int:kb]
+      - bytes_used[int:kb]
     target: 'name of table or index in es'
-    unit: kb
 
 .nfs_usage_inodes:
   extends: .nfs_usage_base

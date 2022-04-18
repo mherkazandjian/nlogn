@@ -7,10 +7,10 @@ home-dir-usage:
     cmd: df -p /home
   timeout: 5
   max_attempts: 10
-  cadence_multiplier: 2
   when:
-    cadence: 10
+    interval: 10s
     unit: seconds
+    cadence_multiplier: 2
   filter:
     hostnames:
       - homenfsserver01
@@ -28,7 +28,7 @@ mount_points_mounted:
   max_attempts: 10
   cadence_multiplier: 2
   when:
-    cadence: 10
+    every: 10
     unit: seconds
   loop:
     mount_points
@@ -44,7 +44,7 @@ network-interfaces:
   transforms:
     - module.function1
     - module.function2
-    - module.function3
+    - every.function3
 
 .disk-usage:
   stage: disks
@@ -74,7 +74,7 @@ apps-dir-usage:
   max_attempts: 10
   cadence_multiplier: 2
   when:
-    cadence: 10
+    every: 10
     unit: seconds
   filter_host:
     - homenfsserver01
@@ -90,7 +90,7 @@ generic_partitions:
   max_attempts: 10
   cadence_multiplier: 2
   when:
-    cadence: 10
+    every: 10
     unit: seconds
   filter_host:
     - homenfsserver01
@@ -101,7 +101,7 @@ scheduler_1:
   max_attempts: 10
   cadence_multiplier: 2
   when:
-    cadence: 10
+    every: 10
     unit: seconds
 
 
