@@ -153,6 +153,12 @@ class TaskComposer:
             raise ValueError(f'{exec_module_name_only} not found')
         self.task.module.py_class = exec_cls
 
+    def replace_variables(self):
+        pass
+
+    def create_job(self):
+        pass
+
 
 class Schedule:
     def __init__(self):
