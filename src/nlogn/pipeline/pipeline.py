@@ -9,7 +9,15 @@ class Pipelines:
 
 
 class Pipeline:
+    """
+    Read a pipeline file and parse it and produce the list of tasks and stages
+
+    This class does not handle replacing variable values.
+    """
     def __init__(self, path=None):
+        """
+
+        """
         self.stages_specs = {}
         self.tasks_specs = {}
         self.parsed = PipelineParser().parse(path)
@@ -28,7 +36,13 @@ class Pipeline:
         chain.reverse()
         return chain
 
-    def assemble_task(self, name=None):
+    def assemble_task(self, name: str = None) -> dict:
+        """
+        Assemble a task by replacing recursively all the '.extends' sections
+
+        :param name: the name of the task to be assembled
+        :return: the assembled task
+        """
         log.debug(f'assmble the task "{name}"')
         chain = self.find_extends_chain(name=name)
         root_name = chain.pop(0)
@@ -39,7 +53,13 @@ class Pipeline:
         assembled.pop('extends')
         return assembled
 
-    def assemble_tasks_specs(self):
+    def assemble_tasks_specs(self) -> None:
+        """
+        Assembe all specs of all the tasks in the pipeline
+
+        changes:
+          - self.tasks_specs
+        """
         self.tasks_specs = {}
         for name in self.parsed.tasks:
             log.debug(f'assemble task {name}')
@@ -49,7 +69,13 @@ class Pipeline:
                 task_spec = self.parsed.spec[name]
             self.tasks_specs[name] = task_spec
 
-    def assemble_stages(self):
+    def assemble_stages(self) -> None:
+        """
+        Construct the list of tasks for each stage
+
+        changes:
+          - self.stages_specs
+        """
         self.stages_specs = {}
         for name in self.tasks_specs:
             stage = self.tasks_specs[name]['stage']
@@ -58,7 +84,26 @@ class Pipeline:
             else:
                 self.stages_specs[stage].append(name)
 
-    def show_specs(self):
+    def show_specs(self) -> None:
+        """
+        Pretty print the pipeline as yaml
+
+        stages:
+          stage1:
+          - task1
+          - task2
+          ...
+          stage2:
+          - task3
+          - task4
+          ...
+
+        task1:
+        ...
+
+        task2:
+        ...
+        """
         print(yaml.dump({'stages': self.stages_specs}, explicit_start=True).replace('---', '').strip())
         print()
         for task in self.tasks_specs:
@@ -66,7 +111,11 @@ class Pipeline:
             print(yaml.dump(spec).replace('---', '').strip())
             print()
 
-    def task_spec(self, name=None):
+    def task_spec(self, name: str = None) -> dict:
+        """
+        Get the spec of a certain task
+        :return: the task spec
+        """
         return {name: self.tasks_specs[name]}
 
 

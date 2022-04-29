@@ -4,6 +4,8 @@ import shlex
 
 from .flask_app_wrapper_utils import parse_args
 
+# .. todo:: use app.run(**flask_only_args) instead of running it as a
+# subprocess
 
 def main():
     args = parse_args()

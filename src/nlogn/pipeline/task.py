@@ -7,22 +7,21 @@ import yaml
 import pint
 
 import nlogn
+from nlogn.pipeline.pipeline import Pipeline
+from nlogn.pipeline.exec_module import ExecModule
+from nlogn.pipeline.schedule import Schedule
+from nlogn.pipeline.schedule import Timeout
 
 _ureg = pint.UnitRegistry()
 
 
 class TaskDefinitionStatus:
     pass
-
 class Defined(TaskDefinitionStatus):
     pass
 class Partial(TaskDefinitionStatus):
     pass
 class Undefined(TaskDefinitionStatus):
-    pass
-
-
-class MetaTask:
     pass
 
 
@@ -49,75 +48,20 @@ class Output:
         pass
 
 
-class ModuleInput:
-    def __init__(self):
-       pass
-
-
-class ModuleOutput:
-    def __init__(self):
-        pass
-
-
-class Module:
-    """
-    Module section handler of a 'task' in the task spec, e.g
-
-    home_part_usage:
-      nlogn.builtin.command:    # <<<< this is referred to as a module
-        cmd: df -bk $MOUNT_POINT
-      ...
-      ...
-    """
-    def __init__(self, spec=None):
-        """
-        Constructor
-
-        :param spec: .. todo:: ...
-        """
-        module = list(spec.keys()).pop()
-        self.module = module
-        "The partially resolved module python path e.g nlogn.builtin.command"
-
-        self.input = spec[module]
-        # .. todo:: if the output is a well defined builting on an extension / plugin
-        # .. todo:: that can be looked up where the output can be inferred then
-        # .. todo:: the output is set, otherwise the output is assumed to be plain
-        # .. todo:: text that is supposed to be transformed
-        self.output = None
-
-        self.py_module_spec = None
-        "The module spec obtaied from importlib"
-
-        self.py_module = None
-        "The actual python module that contains the class whose run method will be executed"
-
-        self.py_class = None
-        "The actual python module that contains the class whose run method will be executed"
-
-    def find_module_in_paths(self):
-        """get the actual callable method / function"""
-
-    def fully_qualified_name(self):
-        real_module_path = self.module.replace('nlogn.', 'nlogn.plugins.')
-        return real_module_path
-
-    def __str__(self):
-        retval = ''
-        retval += f'module: {self.module}\n'
-        retval += f'input: {repr(self.input)}\n'
-        retval += f'output: {repr(self.output)}'
-        return retval
-
-
-class TaskComposer:
+class TaskRenderer:
     """
     Process a task in a pipeline and prepare it for execution
 
     - replace variables
     - create multiple tasks based on parameteres (e.g task grid..etc..)
     """
-    def __init__(self, pipeline=None, name=None):
+    def __init__(self, name: str = None, pipeline: Pipeline = None):
+        """
+        Constructor
+
+        :param name: The name of the task that will be composed.
+        :param pipeline: The parsed and assembled pipeline object to which the task belongs to.
+        """
         self.pipeline = pipeline
         self.task_name = name
         self.task = None
@@ -127,82 +71,153 @@ class TaskComposer:
             self.check_module_sanity()
             self.find_py_module()
             self.find_py_module_class()
+            self.replace_variables()
 
-    def find_task(self):
+    def find_task(self) -> None:
+        """
+        Create the task instance from the task spec that is fetched from the pipeline
+
+        Changes:
+          - self.task
+        """
         task_spec = self.pipeline.task_spec(name=self.task_name)
-        print(yaml.dump(task_spec))
         self.task = Task(spec=task_spec)
 
-    def check_module_sanity(self):
-        py_module_spec = importlib.util.find_spec(self.task.module.fully_qualified_name())
+    def check_module_sanity(self) -> None:
+        """
+        Make sure that the module of the task is importable and set the module spec to the task
+
+        Changes:
+          - self.task.module.py_module_spec
+        """
+        py_module_spec = importlib.util.find_spec(self.task.exec_module.fully_qualified_name())
         assert py_module_spec is not None
-        self.task.module.py_module_spec = py_module_spec
+        self.task.exec_module.py_module_spec = py_module_spec
 
-    def find_py_module(self):
-        mod = importlib.util.module_from_spec(self.task.module.py_module_spec)
-        self.task.module.py_module_spec.loader.exec_module(mod)
-        self.task.module.py_module = mod
+    def find_py_module(self) -> None:
+        """
+        Find the python execution module (.py file) specified in the task and set it to the task
 
-    def find_py_module_class(self):
-        exec_module_name_only = self.task.module.fully_qualified_name().split('.')[-1]
-        for vname, cls_name in self.task.module.py_module.virtual_name.items():
+        Changes:
+          - self.task.module.py_module
+        """
+        mod = importlib.util.module_from_spec(self.task.exec_module.py_module_spec)
+        self.task.exec_module.py_module_spec.loader.exec_module(mod)
+        self.task.exec_module.py_module = mod
+
+    def find_py_module_class(self) -> None:
+        """
+        Find the actual execution class name from the virtual class name in the module
+
+        For example, if the execution module is 'nlogn.builtin.command', then in this case
+        the class 'Command' in the file 'ROOT/nlogn/plugins/builtin/command.py:Command' is
+        set to 'self.task.module.py_class'
+
+        Changes:
+          - self.task.module.py_class
+        """
+        exec_module_name_only = self.task.exec_module.fully_qualified_name().split('.')[-1]
+        for vname, cls_name in self.task.exec_module.py_module.virtual_name.items():
             if vname == exec_module_name_only:
-                exec_cls = getattr(self.task.module.py_module, cls_name)
+                exec_cls = getattr(self.task.exec_module.py_module, cls_name)
                 break
         else:
             raise ValueError(f'{exec_module_name_only} not found')
-        self.task.module.py_class = exec_cls
+        self.task.exec_module.py_class = exec_cls
 
     def replace_variables(self):
-        pass
+        """
+        Replace all variables defined in a task wherever the variables are referenced
+        """
+        """
+        replace variables in:
+          - self.task.exec_module (make a copy of it)
+          - self.task.schedule
+          - self.task.timeout
+        """
+        self.task.exec_module.replace_variables(self.task.variables)
+        self.summary()
+        x = 1
 
     def create_job(self):
+        """
+        Create a job from the composed task.
+
+        This method should be executed after variables have been replaced
+        :return:
+        """
         pass
 
+    def summary(self):
+        """
+        Print a summary of the task
+        """
+        print('---------')
+        print('task name')
+        print('---------')
+        print(self.task_name)
 
-class Schedule:
-    def __init__(self):
-        self.interval = None
-        self.cadence_multiplier = None
-    def __str__(self):
-        retval = ""
-        retval += (
-            f'interval: {repr(self.interval)}\n'
-            f'cadence_multiplier: {self.cadence_multiplier}'
-        )
-        return retval
+        print('-----------------------------------------------------')
+        print('task as yaml before rendering and replacing variables')
+        print('-----------------------------------------------------')
+        print(self.task)
 
+        print('----------------')
+        print('execution module')
+        print('----------------')
+        print(self.task.exec_module)
 
-class Timeout:
-    def __init__(self):
-        self.duration = None
-        self.max_attempts = None
-    def __str__(self):
-        retval = ""
-        retval += (
-            f'duration: {repr(self.duration)}\n'
-            f'max_attempts: {self.max_attempts}\n'
-        )
-        return retval
 
 
 class Task:
     """
-    A task that is executed in a pipeline
+    A single task that definition that is defined in a pipeline
+
+    The following components are expected to be found in a task definition:
+
+      - task name
+      - execution module (one [supported]) .. todo:: implement multiple/nested/chained exec modules
+      - output (this is the final output that is exported [ingested or commited to a destination])
+      - stage: the name of the stage to which the task belongs to
+      - timeout: the timeout of the task
+      - variables: variables that are defined for this task
+      - when: define how often or when the task is executed
     """
-    def __init__(self, spec=None):
+    def __init__(self, spec: dict = None):
+        """
+        Constructor
+
+        :param spec: the spec of the task from the parsed raw pipeline, e.g
+
+          .. code-block:: python
+
+             {'home_part_usage': {'stage': 'nfs',
+              'timeout': {'duration': '5s', 'max_attempts': 10},
+              'when': {'interval': '10s', 'cadence_multiplier': 2},
+              'nlogn.builtin.command': {'cmd': 'df -bk $MOUNT_POINT'},
+              'output': {'transform': [{'nlogn.builtin.remove_header': ['first_line']}],
+               'columns': ['filesystem[str]',
+                'mount_point[str]',
+                'bytes_total[long:kB]',
+                'bytes_used[long:kB]'],
+               'target': 'home_block'},
+              'variables': {'MOUNT_POINT': '/home'}}}
+        """
         self.name = list(spec.keys()).pop()
         self.spec = spec[self.name]
         self.status = Undefined
         self.schedule = None
         self.timeout = None
-        self.module = None
+        self.exec_module = None
         self.output = None
         self.transforms = None
+        self.variables = None
 
-        self.find_module()
+        self.find_exec_module()
+        self.find_variables()
+        self.find_schedule()
 
-    def find_module(self):
+    def find_exec_module(self):
         """
         Search for the main module of the task in the task spec, e.g nlogn.builtin.command
 
@@ -212,16 +227,16 @@ class Task:
         for key in self.spec:
             if key.startswith('nlogn.'):
                 module_spec = self.spec[key]
-                self.module = Module(spec={key: module_spec})
+                self.exec_module = ExecModule(spec={key: module_spec})
                 break
         else:
             raise KeyError('Task does not have an execution module')
 
-    def find_schedule_info(self):
+    def find_schedule(self):
         """
         Search for the schedule information and the cadence
 
-        The following and searched for and set:
+        The following are searched for and set:
 
            - timeout:
                - duration
@@ -235,8 +250,6 @@ class Task:
                - no_response: (hang)
                - nlogn.foo.bar
         """
-        print(self.spec)
-
         # instantiate and set the values of the schedule object
         schedule = Schedule()
         interval = self.spec['when']['interval']
@@ -267,14 +280,24 @@ class Task:
 
         self.timeout = timeout
 
+    def find_variables(self):
+        """
+        Find the variables in the task definition.
+
+        The key value pairs are set as strings
+        """
+        attr = 'variables'
+        variables = {}
+        for key, value in self.spec[attr].items():
+            variables[f'{key}'] = f'{value}'
+        self.variables = variables
+
     def find_output(self):
         pass
 
     def find_stage(self):
         pass
 
-    def find_variables(self):
-        pass
-
-    def find_schedule(self):
-        pass
+    def __str__(self):
+        retval = yaml.dump(self.spec)
+        return retval

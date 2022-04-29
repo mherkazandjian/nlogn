@@ -24,10 +24,10 @@ stages:
       - nlogn.builtin.remove_header:
           - first_line
     columns:
-      - filesystem
-      - mount_point
-      - bytes_total
-      - bytes_used
+      - filesystem[str]
+      - mount_point[str]
+      - bytes_total[long:kB]
+      - bytes_used[long:kB]
     target: 'name of table or index in es'
     unit: kb
 
@@ -39,11 +39,10 @@ stages:
   transform:
     nlogn.builtin.df_command:
       output_columns:
-        - filesystem
-        - mount_point
-        - inodes_total
-        - inodes_used
-      unit: kb
+        - filesystem[str]
+        - mount_point[str]
+        - inodes_total[long]
+        - inodes_used[long]
 
 
 root_part_usage:
@@ -91,8 +90,8 @@ shm_part_usage_inodes:
     columns:
       - filesystem[str]
       - mount_point[str]
-      - bytes_total[int:kb]
-      - bytes_used[int:kb]
+      - bytes_total[long:kB]
+      - bytes_used[long:kB]
     target: 'name of table or index in es'
 
 .nfs_usage_inodes:
@@ -102,10 +101,10 @@ shm_part_usage_inodes:
   transform:
     nlogn.builtin.df_command:
       output_columns:
-        - filesystem
-        - mount_point
-        - inodes_total
-        - inodes_used
+        - filesystem[str]
+        - mount_point[str]
+        - inodes_total[long]
+        - inodes_used[long]
       unit: kb
 
 home_part_usage:
