@@ -11,15 +11,23 @@ class PipelineParserSingleFile:
     def __init__(self, spec: dict = None):
         """
         Constructor
+
         :param spec: The raw data of the pipeline as read e.g from the yaml file
         """
         self.spec = spec
         self.stages = None
         self.tasks = None
+
         self.find_stages()
         self.find_tasks()
 
-    def check_component(self, name):
+    def check_component(self, name: str) -> bool:
+        """
+        Check if a component (e.g stage or task) exists in the spec of the file
+
+        :param name: the name of the component
+        :return: True if the componenet exists False otherwise
+        """
         if name not in self.spec:
             log.debug(f'attribute {name} not found.')
             return False
@@ -30,7 +38,8 @@ class PipelineParserSingleFile:
         """
         Find the stages of the pipeline
 
-        set the value of the attribute: stages
+        changes:
+          - self.stages
         """
         attribute = 'stages'
         log.debug(f'find the {attribute}')
@@ -43,9 +52,14 @@ class PipelineParserSingleFile:
 
     def find_tasks(self) -> None:
         """
-        Find the tasks of the pipeline.
+        Find the tasks of the pipeline
 
         Everything other than 'stages' is assumed to be a task
+        .. todo:: in the future a 'variables' componenet might be needed to
+                  be supported too
+
+        changes:
+          - self.tasks
         """
         log.debug('find the tasks')
         self.tasks = [key.strip() for key in self.spec.keys() if key.strip() != 'stages']
@@ -66,20 +80,14 @@ class PipelineParser:
     """
     Parse a single file that defines a pipeline
     """
-    def __init__(self):
-        """
-        Constructor
-        """
-        pass
-
     @staticmethod
-    def read(fpath: str) -> dict:
+    def read(path: str) -> dict:
         """
         Read a yaml file and return its content as parsed yaml
-        :param fpath: the path to the yaml file that defines the pipeline
+        :param path: the path to the yaml file that defines the pipeline
         :return: the parsed pipeline
         """
-        with open(fpath) as fobj:
+        with open(path) as fobj:
             return yaml.safe_load(fobj.read())
 
     def parse(self, path: str = None) -> PipelineParserSingleFile:
@@ -94,3 +102,4 @@ class PipelineParser:
             raw = self.read(path)
             raw_pipeline = PipelineParserSingleFile(spec=raw)
             return raw_pipeline
+

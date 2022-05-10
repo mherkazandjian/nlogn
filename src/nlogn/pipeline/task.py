@@ -11,6 +11,7 @@ from nlogn.pipeline.pipeline import Pipeline
 from nlogn.pipeline.exec_module import ExecModule
 from nlogn.pipeline.schedule import Schedule
 from nlogn.pipeline.schedule import Timeout
+from nlogn.pipeline.job import Job
 
 _ureg = pint.UnitRegistry()
 
@@ -53,6 +54,14 @@ class TaskRenderer:
     Process a task in a pipeline and prepare it for execution
 
     - replace variables
+    - ensure that the components of the task that are pre-requisites to create
+      a fully defined job are populated and checked.
+    - prepare the lsit of components that are needed to create the job
+       - exec module
+       - schedule
+       - timeout
+       - output
+       - transforms
     - create multiple tasks based on parameteres (e.g task grid..etc..)
     """
     def __init__(self, name: str = None, pipeline: Pipeline = None):
@@ -75,7 +84,7 @@ class TaskRenderer:
 
     def find_task(self) -> None:
         """
-        Create the task instance from the task spec that is fetched from the pipeline
+        Create the task instance from the task spec
 
         Changes:
           - self.task
@@ -128,6 +137,10 @@ class TaskRenderer:
     def replace_variables(self):
         """
         Replace all variables defined in a task wherever the variables are referenced
+
+        .. todo:: maybe it is a good idea and it makes the logic simpler to
+         use the yaml output of the task spec treated as a string to replace
+         the variable vaules by doing string like substitution
         """
         """
         replace variables in:
@@ -136,8 +149,6 @@ class TaskRenderer:
           - self.task.timeout
         """
         self.task.exec_module.replace_variables(self.task.variables)
-        self.summary()
-        x = 1
 
     def create_job(self):
         """
@@ -146,7 +157,17 @@ class TaskRenderer:
         This method should be executed after variables have been replaced
         :return:
         """
-        pass
+        job = Job()
+
+        job.task_name = self.task_name
+        job.exec_cls = self.task.exec_module.py_class
+        job.input = self.task.exec_module.input
+        job.schedule = self.task.schedule
+        job.timeout = self.task.timeout
+        job.history = []
+        job.output = {}
+
+        return job
 
     def summary(self):
         """
@@ -155,7 +176,8 @@ class TaskRenderer:
         print('---------')
         print('task name')
         print('---------')
-        print(self.task_name)
+        print(f'  {self.task_name}')
+        print()
 
         print('-----------------------------------------------------')
         print('task as yaml before rendering and replacing variables')
@@ -203,15 +225,32 @@ class Task:
                'target': 'home_block'},
               'variables': {'MOUNT_POINT': '/home'}}}
         """
-        self.name = list(spec.keys()).pop()
-        self.spec = spec[self.name]
+        self.name: str = list(spec.keys()).pop()
+        """The name of the task"""
+
+        self.spec: dict = spec[self.name]
+        """The spec of the task that is copied from the passed arg"""
+
         self.status = Undefined
-        self.schedule = None
-        self.timeout = None
-        self.exec_module = None
+        """???"""
+
+        self.schedule: Schedule = None
+        """The schedule configuration of the task"""
+
+        self.timeout: Timeout = None
+        """The timeout  configuration of the task"""
+
+        self.exec_module: ExecModule = None
+        """The main execution module of the task"""
+
         self.output = None
+        """The output configuration of the task"""
+
         self.transforms = None
+        """The chain of transformation on the raw output of the execution module"""
+
         self.variables = None
+        """The key value pair of the variables used in the task"""
 
         self.find_exec_module()
         self.find_variables()
@@ -222,6 +261,9 @@ class Task:
         Search for the main module of the task in the task spec, e.g nlogn.builtin.command
 
         .. todo:: allow for searching in namespaces other than 'nlogn' in the python path
+
+        changes:
+          - self.exec_module
         """
         # .. todo:: use a filter pattern here on the key value pairs
         for key in self.spec:
@@ -249,16 +291,20 @@ class Task:
                - success:
                - no_response: (hang)
                - nlogn.foo.bar
+
+        changes:
+          - self.schedule
+          - self.timeout
         """
         # instantiate and set the values of the schedule object
         schedule = Schedule()
         interval = self.spec['when']['interval']
         if isinstance(interval, int):
-            schedule.interval = interval * _ureg.Quantity('s')
+            schedule.interval = float(interval) * _ureg.Quantity('s')
         elif isinstance(interval, str):
             match = re.match(r"([0-9]+)([a-z]+)", interval, re.I)
             value, unit = match.groups()
-            schedule.interval = value * _ureg.Quantity(unit)
+            schedule.interval = float(value) * _ureg.Quantity(unit)
 
         cadence_multiplier = self.spec['when']['cadence_multiplier']
         schedule.cadence_multiplier = cadence_multiplier
@@ -285,6 +331,9 @@ class Task:
         Find the variables in the task definition.
 
         The key value pairs are set as strings
+
+        changes:
+          - self.variables
         """
         attr = 'variables'
         variables = {}

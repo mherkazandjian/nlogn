@@ -41,7 +41,7 @@ class Command(Module):
     def run(self, *args, **kwargs):
         assert self.cmd is not None
         process = Popen(shlex.split(self.cmd), stdout=PIPE, stderr=PIPE)
-        stdout, stderr = process.communicate()
+        stdout, stderr = tuple(map(bytes.decode, process.communicate()))
 
         return json.dumps(
             {

@@ -52,6 +52,7 @@ class ExecModule:
 
     def find_module_in_paths(self):
         """get the actual callable method / function"""
+        pass
 
     def fully_qualified_name(self) -> str:
         """
@@ -63,39 +64,43 @@ class ExecModule:
     @staticmethod
     def replace_variable(str_in, variable: dict = None) -> str:
         """
-        return true if 'variable' exists in 'value'
+        replace the value of 'variable' in the input string 'str_in'
+
         :param variable: the variable name and its value to be replced
         :param str_in: the string that might contain the 'variable' by name
         :return: The string with the variable replaced (if variable exists)
         """
-        # only one variable value can be replaced at a time
+        # only one variable value can be replaced at a time and it must be a dict
         assert len(variable) == 1
-
-        # the variable must be a dict
         assert isinstance(variable, dict)
 
         key, value = '$'+list(variable.keys())[0], list(variable.values())[0]
         str_in = str_in.replace(key, value)
         return str_in
 
-    def find_referenced_variables(self) -> tuple[str]:
+    def find_referenced_variables(self, attr=None) -> tuple[str]:
         """
-        Find the list of referenced variables in the input(s) or the output(s)
-        :return: tuple of referenced variables
+        Find the list of referenced var names in the specified attr, e.g in self.input
+
+        :return: referenced var names
         """
         variables = []
-        for key, value in self.input.items():
+        attr_v = getattr(self, attr)
+        for key, value in attr_v.items():
             variables.extend(list(filter(lambda x: x.startswith('$'), value.split(' '))))
         return tuple(variables)
 
     def replace_variables(self, variables: dict = None):
         """
-        Replace the value of the variable in 'input', 'output' (output not supported yet)
+        Replace the value of the variables in 'input', 'output' (output not supported yet)
+
+        changes:
+          - self.input (overwrite self.input with the replaced variables)
+
         :param variables: the key value pair of the variables
-        :return: A copy of the object with the variables replaced wherever they occure
         """
         # find the list of variables that need to be replaced
-        _required_variables = self.find_referenced_variables()
+        _required_variables = self.find_referenced_variables(attr='input')
         required_variables = []
         for var in _required_variables:
             required_variables.append(var.replace('$', '', 1))

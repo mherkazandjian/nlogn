@@ -1,52 +1,52 @@
+"""
+
+"""
+import asyncio
 import time
-from subprocess import Popen
-from subprocess import PIPE
-import shlex
+from nlogn import log
 
-#
-#
-#
 
-class StopWatch:
+class Job:
+    """
+
+    """
     def __init__(self):
-        self.name = None
-        self.t_start = None
-        self.t_end = None
-    def tic(self):
-        pass
-    def toc(self):
-        pass
-    def __enter__(self):
-        self.t_start = time.time()
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.name:
-            self.t_end = time.time()
-            print(f'{self.name}')
-            print(f'elapsed time: {self.t_start - self.t_start}')
+        """
+        Constructor
+        """
+        self.task_name = None
+        self.exec_cls = None
+        self.input = None
+        self.output = None
+        self.schedule = None
+        self.timeout = None
+        self.history = None
+        self.status = 'unset'
+        self.instances = []
 
-
-class ShellCommand:
-    def __init__(self):
-        self.process = None
-    def running(self):
-        # is the process still running or not? has it returned?
+    def wrap_output(self) -> None:
+        """
+        add a timestamp and the host identifier to the output dict
+        """
         pass
 
-
-class ShellScript(ShellCommand):
-    def __init__(self):
-        # accept and executes a script
-        #   - write the script to a /tmp/foo.sh location wraped in a #!/usr/bin/env bash
-        #   - execute the script and keep track of the exit flag..etc..
+    def current_timestamp(self):
         pass
 
-
-class ShellJob:
-    def __init__(self):
-        self.processes = []  #: list of ShellCommand
-        self.multiplier = 2  #: everytime last attempt fails next time execute
-                             #  it this time later
-    def start(self):
-        pass
-    def end(self):
-        pass
+    async def run(self, *args, **kwargs):
+        log.info(f'[{self.task_name}] enter run func...')
+        if len(self.instances) > self.timeout.max_attempts:
+            log.warn(f'[{self.task_name}] \t max attempts reached {len(self.instances)}, not running more instances')
+            return
+        elif self.status in ['unset', 'terminated']:
+            log.info(f'[{self.task_name}] \t execute job "{self.task_name}", # existing instances {len(self.instances)}')
+            instance = self.exec_cls(**self.input)
+            self.status = 'dispatched'
+            self.instances.append(instance)
+            output = instance.run()
+            log.debug(f'[{self.task_name}] \t' + output)
+            #time.sleep(20)
+            await asyncio.sleep(kwargs['task_to_finish'])
+            self.status = 'terminated'
+            self.instances.pop()
+            return output

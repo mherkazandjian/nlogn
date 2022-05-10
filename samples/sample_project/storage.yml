@@ -18,7 +18,7 @@ stages:
 .disk_usage_kb:
   extends: .disk_usage_base
   nlogn.builtin.command:
-    cmd: df -bk $MOUNT_POINT
+    cmd: df -Bk $MOUNT_POINT
   output:
     transform:
       - nlogn.builtin.remove_header:
@@ -75,14 +75,14 @@ shm_part_usage_inodes:
     duration: 5s
     max_attempts: 10
   when:
-    interval: 10s
+    interval: 2s
     cadence_multiplier: 2
 
 
 .nfs_usage_kb:
   extends: .nfs_usage_base
   nlogn.builtin.command:
-    cmd: df -bk $MOUNT_POINT
+    cmd: df -Bk $MOUNT_POINT
   output:
     transform:
       - nlogn.builtin.remove_header:

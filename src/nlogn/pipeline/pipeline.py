@@ -14,17 +14,33 @@ class Pipeline:
 
     This class does not handle replacing variable values.
     """
-    def __init__(self, path=None):
+    def __init__(self, path: str = None):
         """
+        Constructor
 
+        :param path: The path to the pipeline
         """
         self.stages_specs = {}
         self.tasks_specs = {}
         self.parsed = PipelineParser().parse(path)
+
         self.assemble_tasks_specs()
         self.assemble_stages()
 
-    def find_extends_chain(self, name=None, chain=None):
+    def find_extends_chain(self, name: str = None, chain: list[str] = None) -> list[str]:
+        """
+        Find the tasks that extent the specified task "name" recursively
+
+                              returned chain
+        /---------------------------------------------------\
+                 chain
+        /---------------------\             /---------------\
+        ... parent1 -> parent2 -> "name" -> child1 -> child2 ...
+
+        :param name: The name of the task
+        :param chain: The parent list of tasks of  the current task "name"
+        :return: The list of that extend the current task
+        """
         log.debug(f'find extension chain "{name}"')
         if not chain:
             chain = []
@@ -36,7 +52,7 @@ class Pipeline:
         chain.reverse()
         return chain
 
-    def assemble_task(self, name: str = None) -> dict:
+    def assemble_task_spec(self, name: str = None) -> dict:
         """
         Assemble a task by replacing recursively all the '.extends' sections
 
@@ -57,6 +73,9 @@ class Pipeline:
         """
         Assembe all specs of all the tasks in the pipeline
 
+        a task that has an 'extends' section is crawled recursively and a
+        single task spec is assembled.
+
         changes:
           - self.tasks_specs
         """
@@ -64,7 +83,7 @@ class Pipeline:
         for name in self.parsed.tasks:
             log.debug(f'assemble task {name}')
             if 'extends' in self.parsed.spec[name]:
-                task_spec = self.assemble_task(name)
+                task_spec = self.assemble_task_spec(name)
             else:
                 task_spec = self.parsed.spec[name]
             self.tasks_specs[name] = task_spec
@@ -114,6 +133,7 @@ class Pipeline:
     def task_spec(self, name: str = None) -> dict:
         """
         Get the spec of a certain task
+
         :return: the task spec
         """
         return {name: self.tasks_specs[name]}
