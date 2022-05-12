@@ -319,7 +319,7 @@ class Task:
         elif isinstance(duration, str):
             match = re.match(r"([0-9]+)([a-z]+)", duration, re.I)
             value, unit = match.groups()
-            timeout.duration = value * _ureg.Quantity(unit)
+            timeout.duration = float(value) * _ureg.Quantity(unit)
 
         max_attempts = self.spec['timeout']['max_attempts']
         timeout.max_attempts = max_attempts
