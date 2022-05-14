@@ -31,6 +31,18 @@ for task in complete_tasks:
         }
     )
 
+    scheduler.add_job(
+        pipeline_job.dispatch,
+        "interval",
+        seconds=20,
+        id=f'{pipeline_job.task_name}_transform',
+        max_instances=1,
+        kwargs={
+            'scheduler': scheduler,
+        }
+    )
+    break
+
 scheduler.start()
 loop.run_forever()
 

@@ -28,6 +28,7 @@ class Job:
         self.history = None
         self.status = 'unset'
         self.instances = []
+        self.outputs = []
         self.original_trigger = None
 
     def wrap_output(self) -> None:
@@ -138,14 +139,19 @@ class Job:
             log.warn(f'[{self.task_name}] next execution time extended')
             log.warn(f'[{self.task_name}] \t {scheduler_job.trigger.interval}')
         elif status == 'success':
+
+            # time stamp and store the result asap before overheads creep
+            timestamp_str = datetime.utcnow().isoformat()
+            self.outputs.append([timestamp_str, result])
+
             # restore the original trigger interval
             scheduler_job = self.reschedule_job(
                 scheduler_job,
                 scheduler,
                 seconds=self.schedule.interval.to('sec').magnitude,
             )
-            log.warn(f'[{self.task_name}] reset the execution interval')
-            log.warn(f'[{self.task_name}] \t {scheduler_job.trigger.interval}')
+            log.info(f'[{self.task_name}] reset the execution interval')
+            log.info(f'[{self.task_name}] \t {scheduler_job.trigger.interval}')
 
             # clear the atasks that were in the list of instances (if any)
             # any successful execution clears all prior instances
@@ -155,3 +161,30 @@ class Job:
             if len(self.instances) > 0:
                 self.instances = []
                 log.warn(f'[{self.task_name}] instances list cleared')
+
+    def transform(self, outputs):
+        # ... do the transformations here
+        transformed_outputs = outputs  # just a placeholder
+        return transformed_outputs
+
+    def send_to_relay(self, outputs):
+        # send the outputs to the relay
+        pass
+
+    async def dispatch(self, scheduler: apscheduler.schedulers.asyncio.AsyncIOScheduler = None) -> None:
+        """
+
+        :param scheduler:
+        """
+        log.info(f'[{self.task_name}_transform] enter run func, instance # = {len(self.instances)}')
+
+        # pop the collected outputs/results and print them
+        outputs = []
+        while len(self.outputs) > 0:
+            outputs.append(self.outputs.pop())
+        for timestamp, result in outputs:
+            log.debug(f'[{self.task_name}_transform] {timestamp}:{result}')
+
+        # .. todo:: continue from here
+        transformed_outputs = self.transform(outputs)
+        self.send_to_relay(transformed_outputs)
