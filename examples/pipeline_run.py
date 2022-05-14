@@ -5,8 +5,8 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from nlogn.pipeline.pipeline import Pipeline
 from nlogn.pipeline.task import TaskRenderer
 
-heartbeat_pipeline_path = '../../samples/sample_project/heartbeat.yml'
-storage_pipeline_path = '../../samples/sample_project/storage.yml'
+heartbeat_pipeline_path = '../samples/sample_project/heartbeat.yml'
+storage_pipeline_path = '../samples/sample_project/storage.yml'
 
 pipeline = Pipeline(storage_pipeline_path)
 pipeline.show_specs()
