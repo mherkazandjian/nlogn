@@ -55,14 +55,14 @@ if not len(logger.handlers):
     # create formatter
     formatter = logging.Formatter(
         ('[%(asctime)s %(funcName)s() %(filename)s'
-         ':%(lineno)s][%(levelname)-8s] %(message)s'))
+         ':%(lineno)-7d][%(levelname)-8s] %(message)s'))
 
     # just like print()
     # formatter = logging.Formatter('%(message)s')
 
     # a color formatter
     FORMAT = ("[%(asctime)s %(levelname)-18s "
-              "$BOLD%(filename)s{%(lineno)d}$RESET:%(funcName)s()] "
+              "$BOLD%(filename)s{%(lineno)-5d}$RESET:%(funcName)s()] "
               "%(message)s")
     COLOR_FORMAT = formatter_message(FORMAT, True)
     formatter = ColoredFormatter(COLOR_FORMAT)
