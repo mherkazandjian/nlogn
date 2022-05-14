@@ -113,8 +113,7 @@ class Job:
             #   - exec class success (assumed yes)
             #   - exec class failed  (not implemented yet)
             status, result = atask.result()
-            log.info(f'[{self.task_name}] stdout = {result}')
-            log.info(f'[{self.task_name}] stderr = {result}')
+            log.info(f'[{self.task_name}] output = {result}')
 
             # if exec class success
             # .. todo:: implement exec class failed
