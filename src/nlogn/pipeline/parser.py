@@ -84,6 +84,7 @@ class PipelineParser:
     def read(path: str) -> dict:
         """
         Read a yaml file and return its content as parsed yaml
+
         :param path: the path to the yaml file that defines the pipeline
         :return: the parsed pipeline
         """

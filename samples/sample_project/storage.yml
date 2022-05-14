@@ -8,10 +8,10 @@ stages:
 .disk_usage_base:
   stage: disks
   timeout:
-    duration: 5s
-    max_attempts: 10
+    duration: 10s
+    max_attempts: 5
   when:
-    interval: 10s
+    interval: 60s
     cadence_multiplier: 2
 
 
@@ -73,9 +73,9 @@ shm_part_usage_inodes:
   stage: nfs
   timeout:
     duration: 5s
-    max_attempts: 10
+    max_attempts: 3
   when:
-    interval: 2s
+    interval: 120s
     cadence_multiplier: 2
 
 
