@@ -8,10 +8,10 @@ stages:
 .disk_usage_base:
   stage: disks
   timeout:
-    duration: 10s
+    duration: 2s
     max_attempts: 5
   when:
-    interval: 60s
+    interval: 5s
     cadence_multiplier: 2
 
 
@@ -21,28 +21,33 @@ stages:
     cmd: df -Bk $MOUNT_POINT
   output:
     transform:
-      - nlogn.builtin.remove_header:
-          - first_line
+      - nlogn.builtin.utils.remove_header:
+          lines: 1
+      - nlogn.builtin.utils.keep_cols:
+          col_no: [0, 1, 2, -1]
     columns:
       - filesystem[str]
       - mount_point[str]
       - bytes_total[long:kB]
       - bytes_used[long:kB]
     target: 'name of table or index in es'
-    unit: kb
-
 
 .disk_usage_inodes:
   extends: .disk_usage_base
   nlogn.builtin.command:
     cmd: df -i $MOUNT_POINT
-  transform:
-    nlogn.builtin.df_command:
-      output_columns:
-        - filesystem[str]
-        - mount_point[str]
-        - inodes_total[long]
-        - inodes_used[long]
+  output:
+    transform:
+      - nlogn.builtin.utils.remove_header:
+          lines: 1
+      - nlogn.builtin.utils.keep_cols:
+          col_no: [0, 1, 2, -1]
+    columns:
+      - filesystem[str]
+      - mount_point[str]
+      - inodes_total[long]
+      - inodes_used[long]
+    target: 'name of table or index in es'
 
 
 root_part_usage:
@@ -85,8 +90,8 @@ shm_part_usage_inodes:
     cmd: df -Bk $MOUNT_POINT
   output:
     transform:
-      - nlogn.builtin.remove_header:
-        - first_line
+      - nlogn.builtin.utils.remove_header:
+          lines: 1
     columns:
       - filesystem[str]
       - mount_point[str]
@@ -98,14 +103,17 @@ shm_part_usage_inodes:
   extends: .nfs_usage_base
   nlogn.builtin.command:
     cmd: df -i $MOUNT_POINT
-  transform:
-    nlogn.builtin.df_command:
-      output_columns:
-        - filesystem[str]
-        - mount_point[str]
-        - inodes_total[long]
-        - inodes_used[long]
-      unit: kb
+  output:
+    transform:
+      - nlogn.builtin.utils.remove_header:
+          lines: 1
+    columns:
+      - filesystem[str]
+      - mount_point[str]
+      - inodes_total[long]
+      - inodes_used[long]
+    target: 'name of table or index in es'
+
 
 home_part_usage:
   extends: .nfs_usage_kb

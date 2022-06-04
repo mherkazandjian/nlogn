@@ -2,9 +2,19 @@ import time
 
 
 class Schedule:
+    """
+    A schedule that defines an interval and a cadence multiplier for that interval
+    """
     def __init__(self):
+        """
+        Constructor
+        """
         self.interval = None
-        self.cadence_multiplier = None
+        """A duration in seconds"""
+
+        self.cadence_multiplier: int = None
+        """An integer multiplier for the interval"""
+
     def __str__(self):
         retval = ""
         retval += (
@@ -15,9 +25,18 @@ class Schedule:
 
 
 class Timeout:
+    """A duration after which an action is terminated"""
     def __init__(self):
+        """
+        Constructor
+        """
+
         self.duration = None
+        """The duration in seconds"""
+
         self.max_attempts = None
+        """The maximum number of attempts for an arbitrary action"""
+
     def __str__(self):
         retval = ""
         retval += (

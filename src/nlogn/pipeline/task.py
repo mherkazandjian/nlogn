@@ -1,6 +1,7 @@
 """
 
 """
+import os
 import re
 import importlib
 import yaml
@@ -76,11 +77,19 @@ class TaskRenderer:
         self.task = None
 
         if name is not None:
+
             self.find_task()
-            self.check_module_sanity()
-            self.find_py_module()
-            self.find_py_module_class()
+
+            self.check_exec_module_sanity()
+            self.find_exec_py_module()
+            self.find_exec_py_module_class()
             self.replace_variables()
+
+            self.check_transforms_modules_sanity()
+            self.find_transforms_py_module()
+            self.find_transforms_py_module_class()
+            # .. todo:: replace variables not supported at the moment for transforms
+
 
     def find_task(self) -> None:
         """
@@ -92,7 +101,7 @@ class TaskRenderer:
         task_spec = self.pipeline.task_spec(name=self.task_name)
         self.task = Task(spec=task_spec)
 
-    def check_module_sanity(self) -> None:
+    def check_exec_module_sanity(self) -> None:
         """
         Make sure that the module of the task is importable and set the module spec to the task
 
@@ -103,18 +112,50 @@ class TaskRenderer:
         assert py_module_spec is not None
         self.task.exec_module.py_module_spec = py_module_spec
 
-    def find_py_module(self) -> None:
+    def check_transforms_modules_sanity(self) -> None:
         """
-        Find the python execution module (.py file) specified in the task and set it to the task
+        Make sure that the module of the transform is importable and set the module spec to the transforms
 
         Changes:
-          - self.task.module.py_module
+          - self.task.transforms[:].py_module_spec
+
+        .. todo:: this method is a copy of self.check_exec_module_sanity but it is done like this
+                  for quick testinf and prototyping, .. todo:: reuse the code and cleanup
+        """
+        for transform in self.task.transforms:
+            module_path = transform.fully_qualified_name()
+            if not os.path.exists(module_path):
+                module_path = module_path.rsplit('.', 1)[0]
+            py_module_spec = importlib.util.find_spec(module_path)
+            assert py_module_spec is not None
+            transform.py_module_spec = py_module_spec
+
+    def find_exec_py_module(self) -> None:
+        """
+        Find the python execution module (.py file) specified in the task and set it
+
+        .. todo:: this method is a copy of self.check_exec_py_module but it is done like this
+                  for quick testinf and prototyping, .. todo:: reuse the code and cleanup
+        Changes:
+          - self.task.transforms[:].py_module
         """
         mod = importlib.util.module_from_spec(self.task.exec_module.py_module_spec)
         self.task.exec_module.py_module_spec.loader.exec_module(mod)
         self.task.exec_module.py_module = mod
 
-    def find_py_module_class(self) -> None:
+    def find_transforms_py_module(self) -> None:
+        """
+        Find the python execution module (.py file) specified in the transforms and set it
+
+        Changes:
+          - self.task.transforms[:].py_module
+        """
+        for transform in self.task.transforms:
+            mod = importlib.util.module_from_spec(transform.py_module_spec)
+            transform.py_module_spec.loader.exec_module(mod)
+            transform.py_module = mod
+
+    def find_exec_py_module_class(self) -> None:
         """
         Find the actual execution class name from the virtual class name in the module
 
@@ -128,11 +169,47 @@ class TaskRenderer:
         exec_module_name_only = self.task.exec_module.fully_qualified_name().split('.')[-1]
         for vname, cls_name in self.task.exec_module.py_module.virtual_name.items():
             if vname == exec_module_name_only:
-                exec_cls = getattr(self.task.exec_module.py_module, cls_name)
+                cls = getattr(self.task.exec_module.py_module, cls_name)
                 break
         else:
             raise ValueError(f'{exec_module_name_only} not found')
-        self.task.exec_module.py_class = exec_cls
+        self.task.exec_module.py_class = cls
+
+    def find_transforms_py_module_class(self) -> None:
+        """
+        Find the actual execution class name or function from the virtual class name in the module
+
+        For example, if the execution module is 'nlogn.builtin.command', then in this case
+        the class 'Command' in the file 'ROOT/nlogn/plugins/builtin/command.py:Command' is
+        set to 'self.task.module.py_class'
+
+        .. note:: for transforms the module should be defined to have either the virtual_name
+                  or not have it and use the callables only.
+        Changes:
+          - self.task.transforms.py_class
+        """
+        for transform in self.task.transforms:
+            transform_module_name_only = transform.fully_qualified_name().split('.')[-1]
+            if hasattr(transform.py_module, 'virtual_name'):
+                for vname, cls_name in transform.py_module.virtual_name.items():
+                    if vname == transform_module_name_only:
+                        cls = getattr(transform.py_module, cls_name)
+                        break
+                else:
+                    raise ValueError(f'{transform_module_name_only} not found')
+            elif transform_module_name_only in dir(transform.py_module):
+                cls = getattr(transform.py_module, transform_module_name_only)
+            else:
+                raise ValueError(f'{transform_module_name_only} not found')
+
+            # set the proper attribute callable or class
+            if type(cls) == type:
+                transform.py_class = cls
+            elif callable(cls):
+                transform.py_func = cls
+            else:
+                raise ValueError(f'transform should be a class type or callable, got {type(cls)}')
+
 
     def replace_variables(self):
         """
@@ -255,12 +332,14 @@ class Task:
         self.find_exec_module()
         self.find_variables()
         self.find_schedule()
+        self.find_transforms()
 
     def find_exec_module(self):
         """
         Search for the main module of the task in the task spec, e.g nlogn.builtin.command
 
         .. todo:: allow for searching in namespaces other than 'nlogn' in the python path
+                  for example nlogn.plugins.foo.bar
 
         changes:
           - self.exec_module
@@ -340,6 +419,39 @@ class Task:
         for key, value in self.spec[attr].items():
             variables[f'{key}'] = f'{value}'
         self.variables = variables
+
+    def find_transforms(self):
+        """
+        Search for the transforms section in the output section
+
+        .. todo:: allow for searching in namespaces other than 'nlogn' in the python path
+                  for example nlogn.plugins.foo.bar
+
+        changes:
+          - self.transforms
+        """
+        output = self.spec.get('output')
+        # no output is specified hence no transforms are specified / needed
+        if not output:
+            self.transforms = []
+            return
+
+        transforms = output.get('transform')
+        # no transforms is specified
+        if not transforms:
+            self.transforms = []
+        else:
+            # one or more transform is specified, pre-process them and
+            # add them to the list of transforms. Each transform should
+            # be a python exec module
+            transforms_list = []
+
+            # .. todo:: use a filter pattern here on the key value pairs
+            for transform in transforms:
+                exec_module = ExecModule(spec=transform)
+                transforms_list.append(exec_module)
+
+            self.transforms = transforms_list
 
     def find_output(self):
         pass

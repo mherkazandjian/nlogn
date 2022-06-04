@@ -48,7 +48,10 @@ class ExecModule:
         "The actual python module that contains the class whose run method will be executed"
 
         self.py_class = None
-        "The actual python module that contains the class whose run method will be executed"
+        "The actual class whose run method will be executed (if it is set)"
+
+        self.py_func = None
+        "The actual function that will be executed (if it is set)"
 
     def find_module_in_paths(self):
         """get the actual callable method / function"""

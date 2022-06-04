@@ -117,7 +117,9 @@ class Job:
             log.info(f'[{self.task_name}] output = {result}')
 
             # if exec class success
-            # .. todo:: implement exec class failed
+            #   assumed yes ...
+            # else
+            # .. todo:: implement handling exec class failed
             # elif result.error
         else:
             # exec class timed out, set the flags and result and update the next run time
@@ -142,6 +144,11 @@ class Job:
 
             # time stamp and store the result asap before overheads creep
             timestamp_str = datetime.utcnow().isoformat()
+
+            # run the transforms stack
+
+            # placeholder, just use the result as the transformed result
+            transformed_result = result
             self.outputs.append([timestamp_str, result])
 
             # restore the original trigger interval
