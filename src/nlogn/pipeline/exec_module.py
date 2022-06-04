@@ -32,7 +32,11 @@ class ExecModule:
         self.module = module
         "The partially resolved module python path e.g nlogn.builtin.command"
 
-        self.input = spec[module]
+        inputs = spec[module]
+        if not inputs:
+            inputs = {}
+
+        self.input = inputs
         # .. todo:: if the output is a well defined builting on an extension / plugin
         # .. todo:: that can be looked up where the output can be inferred then
         # .. todo:: the output is set, otherwise the output is assumed to be plain

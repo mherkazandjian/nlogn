@@ -3,7 +3,7 @@
 """
 import copy
 import asyncio
-import time
+import socket
 from datetime import datetime
 
 import apscheduler.schedulers.asyncio
@@ -22,14 +22,16 @@ class Job:
         self.task_name = None
         self.exec_cls = None
         self.input = None
-        self.output = None
         self.schedule = None
         self.timeout = None
-        self.history = None
-        self.status = 'unset'
-        self.instances = []
+        self.transforms = None
         self.outputs = []
+
+        self.instances = []
         self.original_trigger = None
+
+        self.history = None   #: not used yet
+        self.status = 'unset'  #: not used yet
 
     def wrap_output(self) -> None:
         """
@@ -145,11 +147,14 @@ class Job:
             # time stamp and store the result asap before overheads creep
             timestamp_str = datetime.utcnow().isoformat()
 
-            # run the transforms stack
+            # get the hostname
+            hostname = socket.gethostname()
 
-            # placeholder, just use the result as the transformed result
-            transformed_result = result
-            self.outputs.append([timestamp_str, result])
+            # run the transforms stack
+            transformed_output = self.transform(result)
+
+            # store the output that is ready to be dispatched
+            self.outputs.append([timestamp_str, hostname, transformed_output])
 
             # restore the original trigger interval
             scheduler_job = self.reschedule_job(
@@ -169,10 +174,23 @@ class Job:
                 self.instances = []
                 log.warn(f'[{self.task_name}] instances list cleared')
 
-    def transform(self, outputs):
-        # ... do the transformations here
-        transformed_outputs = outputs  # just a placeholder
-        return transformed_outputs
+    def transform(self, output):
+        """
+        Apply the stack of the transforms to the output
+
+        The output should be compatible with the 'columns' spec of the task defined in the pipeline
+
+        :param output:
+        :return: dict
+        """
+        transformed_output = copy.copy(output)
+        for transform in self.transforms:
+            if transform.py_class:
+                raise NotImplementedError('classess not supported for transforms yet')
+            func = transform.py_func
+            transformed_output = func(output=transformed_output, **transform.input)
+
+        return transformed_output
 
     def send_to_relay(self, outputs):
         # send the outputs to the relay

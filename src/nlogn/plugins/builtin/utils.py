@@ -1,3 +1,4 @@
+import pint
 import json
 from subprocess import Popen
 from subprocess import PIPE
@@ -10,7 +11,9 @@ from .. import Module
 
 virtual_name = {
     'remove_header': 'remove_header',
-    'keep_cols': 'keep_cols'
+    'keep_cols': 'keep_cols',
+    'df_cmd_size_single_mount': 'df_cmd_size_single_mount',
+    'df_cmd_inodes_single_mount': 'df_cmd_inodes_single_mount'
     # .. todo:: by default the key should have the same name as the module.py
     # .. todo::
     # .. todo:: in case more than one class is defined in the .py file
@@ -32,12 +35,34 @@ virtual_name = {
     # .. todo:: this behavior
 }
 
+_ureg = pint.UnitRegistry()
+BYTES_UNIT_CONVERTER = pint.UnitRegistry(filename=None)
+BYTES_UNIT_CONVERTER.define('KB = []')
+BYTES_UNIT_CONVERTER.define('MB = 1024 KB')
+BYTES_UNIT_CONVERTER.define('GB = 1048576 KB')
+
 
 def remove_header(input=None, lines=1):
     return input
 
 def keep_cols(input=None, cols=[]):
     return input
+
+def df_cmd_size_single_mount(output=None, *args, **kwargs):
+    _output = json.loads(output)
+    record = _output['stdout'].splitlines()[-1]
+    fs, sz, used, _, _, mount = map(str.strip, record.split())
+    sz = BYTES_UNIT_CONVERTER(sz.replace('K', 'KB'))
+    used = BYTES_UNIT_CONVERTER(used.replace('K', 'KB'))
+
+    retval = {
+        'filesystem': fs,
+        'mount': mount,
+        'size_total': sz,
+        'size_used': used
+    }
+
+    return retval
 
 """
 def main(*args, **kwargs):

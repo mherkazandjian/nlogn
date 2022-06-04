@@ -46,7 +46,8 @@ class Command(Module):
         return json.dumps(
             {
                 'stdout': stdout,
-                'stderr': stderr
+                'stderr': stderr,
+                'retcode': None   # .. todo:: this is a placeholder
             }
         )
 

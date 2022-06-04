@@ -90,7 +90,6 @@ class TaskRenderer:
             self.find_transforms_py_module_class()
             # .. todo:: replace variables not supported at the moment for transforms
 
-
     def find_task(self) -> None:
         """
         Create the task instance from the task spec
@@ -241,8 +240,8 @@ class TaskRenderer:
         job.input = self.task.exec_module.input
         job.schedule = self.task.schedule
         job.timeout = self.task.timeout
-        job.history = []
-        job.output = {}
+        job.transforms = self.task.transforms
+        job.outputs = []
 
         return job
 
@@ -265,7 +264,6 @@ class TaskRenderer:
         print('execution module')
         print('----------------')
         print(self.task.exec_module)
-
 
 
 class Task:
