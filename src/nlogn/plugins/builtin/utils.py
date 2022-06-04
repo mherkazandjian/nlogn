@@ -64,6 +64,21 @@ def df_cmd_size_single_mount(output=None, *args, **kwargs):
 
     return retval
 
+
+def df_cmd_inodes_single_mount(output=None, *args, **kwargs):
+    _output = json.loads(output)
+    record = _output['stdout'].splitlines()[-1]
+    fs, sz, used, _, _, mount = map(str.strip, record.split())
+
+    retval = {
+        'filesystem': fs,
+        'mount': mount,
+        'inodes_total': sz,
+        'inodes_used': used
+    }
+
+    return retval
+
 """
 def main(*args, **kwargs):
     pass

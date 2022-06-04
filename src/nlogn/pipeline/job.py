@@ -192,7 +192,7 @@ class Job:
 
         return transformed_output
 
-    def send_to_relay(self, outputs):
+    async def send_to_relay(self, scheduler: apscheduler.schedulers.asyncio.AsyncIOScheduler = None) -> None:
         # send the outputs to the relay
         pass
 

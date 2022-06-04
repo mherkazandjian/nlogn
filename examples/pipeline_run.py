@@ -5,7 +5,6 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from nlogn.pipeline.pipeline import Pipeline
 from nlogn.pipeline.task import TaskRenderer
 
-heartbeat_pipeline_path = '../samples/sample_project/heartbeat.yml'
 storage_pipeline_path = '../samples/sample_project/storage.yml'
 
 pipeline = Pipeline(storage_pipeline_path)
@@ -14,6 +13,8 @@ pipeline.show_specs()
 loop = asyncio.new_event_loop()
 scheduler = AsyncIOScheduler(event_loop=loop)
 
+# tasks that do not start with . are considered complete tasks that need to run
+# i.e tasks that start with . are considered 'hidden' tasks
 complete_tasks = [task for task in pipeline.tasks_specs if not task.startswith('.')]
 for task in complete_tasks:
     task_renderer = TaskRenderer(name=task, pipeline=pipeline)
@@ -32,19 +33,17 @@ for task in complete_tasks:
     )
 
     scheduler.add_job(
-        pipeline_job.dispatch,
+        pipeline_job.send_to_relay,
         "interval",
-        seconds=20,
-        id=f'{pipeline_job.task_name}_transform',
+        seconds=pipeline_job.schedule.interval.to('sec').magnitude,
+        id=pipeline_job.task_name + '_relay',
         max_instances=1,
         kwargs={
             'scheduler': scheduler,
         }
     )
-    break
 
 scheduler.start()
 loop.run_forever()
 
 print('done')
-
