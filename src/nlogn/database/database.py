@@ -9,7 +9,7 @@ from elasticsearch.exceptions import ConnectionTimeout
 import numpy
 import pandas as pd
 
-from nlogn.loggers.logger import log
+from nlogn import log
 
 
 class Mapping:

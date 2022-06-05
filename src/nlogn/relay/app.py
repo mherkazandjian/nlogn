@@ -1,5 +1,4 @@
 import os
-import sys
 
 from flask import Flask
 from flask import request
@@ -7,7 +6,6 @@ from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash
 from werkzeug.security import check_password_hash
 
-from nlogn.loggers.logger import log
 from nlogn.database.database import Database
 
 assert 'DATABASE' in os.environ

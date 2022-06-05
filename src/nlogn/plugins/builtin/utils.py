@@ -1,10 +1,10 @@
-import pint
 import json
 from subprocess import Popen
 from subprocess import PIPE
 import shlex
 
 from .. import Module
+from nlogn.units import bytes_units_converter
 
 # .. todo:: make sure to document that in the __init__.py each .py
 # .. todo:: should be imported
@@ -35,25 +35,20 @@ virtual_name = {
     # .. todo:: this behavior
 }
 
-_ureg = pint.UnitRegistry()
-BYTES_UNIT_CONVERTER = pint.UnitRegistry(filename=None)
-BYTES_UNIT_CONVERTER.define('KB = []')
-BYTES_UNIT_CONVERTER.define('MB = 1024 KB')
-BYTES_UNIT_CONVERTER.define('GB = 1048576 KB')
-
-
 def remove_header(input=None, lines=1):
     return input
 
+
 def keep_cols(input=None, cols=[]):
     return input
+
 
 def df_cmd_size_single_mount(output=None, *args, **kwargs):
     _output = json.loads(output)
     record = _output['stdout'].splitlines()[-1]
     fs, sz, used, _, _, mount = map(str.strip, record.split())
-    sz = BYTES_UNIT_CONVERTER(sz.replace('K', 'KB'))
-    used = BYTES_UNIT_CONVERTER(used.replace('K', 'KB'))
+    sz = bytes_units_converter(sz.replace('K', 'KB'))
+    used = bytes_units_converter(used.replace('K', 'KB'))
 
     retval = {
         'filesystem': fs,

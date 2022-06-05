@@ -1,20 +1,11 @@
-import sys
-import time
-import json
-import time
+import asyncio
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-import warnings
-warnings.filterwarnings('ignore', message='Certificate for localhost has no')
-
-import requests
 from requests.auth import HTTPBasicAuth
-import schedule
-from schedule import repeat
-import psutil
-import datetime
-import dateutil
-from dateutil.tz import tzutc
+
 from nlogn.agent.argparser import parse_args
+from nlogn.pipeline.pipeline import Pipeline
+from nlogn.pipeline.task import TaskRenderer
 
 
 def main():
@@ -35,51 +26,42 @@ def main():
         'cert': args.trusted_certificate
     }
 
-    def pipeline_1(stats=None, connection=None, *args, **kwargs):
-        stats['a'] += 1
-        pct_cpu = psutil.cpu_percent()
-        print(f'job2 {stats["a"]}')
+    pipeline = Pipeline(args.pipelines)
+    pipeline.show_specs()
 
-        t = datetime.datetime.utcnow()
-        timestamp = t.strftime('%Y-%m-%dT%H:%M:%S')
-        print(timestamp)
+    loop = asyncio.new_event_loop()
+    scheduler = AsyncIOScheduler(event_loop=loop)
 
-        # the last job in a pipeline publishes the data
-        # the data is a dict with the key value is the job name
-        # in the case of the last job in the pipeline the name of the
-        # key is the name of the pipeline.
-        # a pipeline with a single job in that case that job is the pipeline
-        # the last job in the pipeline is by default called the same as the
-        # pipeline name
-        data = {
-            'pipeline_1': {
-                'timestamp': timestamp,
-                'host': 'my_host',
-                'duration': 0.1,
-                'pct_cpu': pct_cpu
+    complete_tasks = [task for task in pipeline.tasks_specs if not task.startswith('.')]
+    for task in complete_tasks:
+        task_renderer = TaskRenderer(name=task, pipeline=pipeline)
+        task_renderer.summary()
+        pipeline_job = task_renderer.create_job()
+
+        scheduler.add_job(
+            pipeline_job.run,
+            "interval",
+            seconds=pipeline_job.schedule.interval.to('sec').magnitude,
+            id=pipeline_job.task_name,
+            max_instances=pipeline_job.timeout.max_attempts,
+            kwargs={
+                'scheduler': scheduler,
             }
-        }
-
-        requests.post(
-            connection['url'],
-            auth=connection['auth'],
-            headers=connection['headers'],
-            data=json.dumps(data),
-            verify=connection['cert']
         )
 
-        stats['a'] += 1
-        print(stats['a'])
+        scheduler.add_job(
+            pipeline_job.dispatch,
+            "interval",
+            seconds=pipeline_job.schedule.interval.to('sec').magnitude,
+            id=pipeline_job.task_name + '_dispatch',
+            max_instances=1,
+            kwargs={
+                'connection': conn,
+            }
+        )
 
-    stats_2 = {}
-    stats_2['a'] = 0
-    schedule.every(2).seconds.do(pipeline_1, stats=stats_2, connection=conn)
-
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
-        print('done')
-
+    scheduler.start()
+    loop.run_forever()
 
 
 if __name__ == '__main__':

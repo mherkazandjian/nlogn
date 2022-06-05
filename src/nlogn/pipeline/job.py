@@ -1,14 +1,20 @@
 """
 
 """
+import json
 import copy
 import asyncio
 import socket
 from datetime import datetime
 
+import warnings
+warnings.filterwarnings('ignore', message='Certificate for localhost has no')
+import requests
+
 import apscheduler.schedulers.asyncio
 
 from nlogn import log
+from nlogn import units
 
 
 class Job:
@@ -25,6 +31,7 @@ class Job:
         self.schedule = None
         self.timeout = None
         self.transforms = None
+        self.output = None
         self.outputs = []
 
         self.instances = []
@@ -153,8 +160,20 @@ class Job:
             # run the transforms stack
             transformed_output = self.transform(result)
 
+            # check that the transformed data is in line with the expected columns
+            # and do the unit conversion and prepare the type info to be appended to the ouput
+            prepared_outputs, columns_info = self.prepare_outputs(transformed_output)
+
             # store the output that is ready to be dispatched
-            self.outputs.append([timestamp_str, hostname, transformed_output])
+            self.outputs.append(
+                {
+                    'timestamp': timestamp_str,
+                    'hostname': hostname,
+                    'output': prepared_outputs,
+                    'columns': columns_info,
+                    'name': self.task_name
+                }
+            )
 
             # restore the original trigger interval
             scheduler_job = self.reschedule_job(
@@ -192,24 +211,57 @@ class Job:
 
         return transformed_output
 
-    async def send_to_relay(self, scheduler: apscheduler.schedulers.asyncio.AsyncIOScheduler = None) -> None:
-        # send the outputs to the relay
-        pass
-
-    async def dispatch(self, scheduler: apscheduler.schedulers.asyncio.AsyncIOScheduler = None) -> None:
+    def prepare_outputs(self, outputs):
         """
 
-        :param scheduler:
+        :return:
         """
-        log.info(f'[{self.task_name}_transform] enter run func, instance # = {len(self.instances)}')
+        # check that the column names are the same as specified in the output spec
+        output_col_names = set(outputs.keys())
+        expected_col_names = {column.name for column in self.output.columns}
+        diff = expected_col_names - output_col_names
+        if diff:
+            for name in diff:
+                log.error(f'the following column name is inconsistent {name}')
+            raise ValueError('there is an inconsistency between the transformed data and the expected columns')
+
+        columns_info = {}
+        prepared_output = {}
+        for col in self.output.columns:
+
+            col_name_with_unit = col.name
+            if col.unit:
+                col_name_with_unit += f'_{col.unit}'
+
+            if col.unit:
+                converted_value = outputs[col.name].to(col.unit).magnitude
+                converted_casted_value = units.types_map[col.type](converted_value)
+                prepared_output[col_name_with_unit] = converted_casted_value
+            else:
+                prepared_output[col_name_with_unit] = outputs[col.name]
+
+            columns_info[col_name_with_unit] = col.type
+
+        return prepared_output, columns_info
+
+    async def dispatch(self, connection=None) -> None:
+        """
+
+        :param connection:
+        :return:
+        """
+        log.info(f'[{self.task_name}_relay] enter dispatch method')
 
         # pop the collected outputs/results and print them
-        outputs = []
+        outputs_send = []
         while len(self.outputs) > 0:
-            outputs.append(self.outputs.pop())
-        for timestamp, result in outputs:
-            log.debug(f'[{self.task_name}_transform] {timestamp}:{result}')
+            outputs_send.append(self.outputs.pop(0))
 
-        # .. todo:: continue from here
-        transformed_outputs = self.transform(outputs)
-        self.send_to_relay(transformed_outputs)
+        # send the outputs to the relay
+        requests.post(
+            connection['url'],
+            auth=connection['auth'],
+            headers=connection['headers'],
+            data=json.dumps(outputs_send),
+            verify=connection['cert']
+        )

@@ -7,7 +7,6 @@ import importlib
 import yaml
 import pint
 
-import nlogn
 from nlogn.pipeline.pipeline import Pipeline
 from nlogn.pipeline.exec_module import ExecModule
 from nlogn.pipeline.schedule import Schedule
@@ -27,27 +26,59 @@ class Undefined(TaskDefinitionStatus):
     pass
 
 
-class Columns:
+class Column:
     """
     .. todo:: use Pint https://github.com/hgrecco/pint
     """
-    def __init__(self):
-        self.names = None
-        self.units = None
+    def __init__(self, spec=None):
+        self.spec = spec
+        self.name = None
+        self.type = None
+        self.unit = None
+        if self.spec:
+            self.parse_column()
+
+    def parse_column(self):
+        """
+        Find the column name and the type and the unit (if any)
+
+        :return:
+        """
+        # find the column name and the type info (the type info [] is mandatory)
+        col_name, type_info = re.search(r'(.*)\[(.*)\]', self.spec).groups()
+        self.name = col_name
+
+        if ':' in type_info:
+            data_type, data_unit = type_info.split(':')
+        else:
+            data_type = type_info
+            data_unit = None
+
+        self.type = data_type
+        self.unit = data_unit
 
 
 class Output:
+    """
+
+    """
     def __init__(self, spec=None):
+        self.spec = spec
         self.columns = None
-    def find_transforms(self):
+
+        if self.spec:
+            self.parse_columns_info()
+
+    def parse_columns_info(self):
         """
-        .. todo:: implement these below
-        Find the section of transforms where each is a module as Module objects
-        Find the corresponding modules and insert them into a list
-        Find the input args for each
-        :return: json
+
+        :return:
         """
-        pass
+        columns = []
+        for column_spec in self.spec:
+            column = Column(spec=column_spec)
+            columns.append(column)
+        self.columns = columns
 
 
 class TaskRenderer:
@@ -209,7 +240,6 @@ class TaskRenderer:
             else:
                 raise ValueError(f'transform should be a class type or callable, got {type(cls)}')
 
-
     def replace_variables(self):
         """
         Replace all variables defined in a task wherever the variables are referenced
@@ -241,6 +271,7 @@ class TaskRenderer:
         job.schedule = self.task.schedule
         job.timeout = self.task.timeout
         job.transforms = self.task.transforms
+        job.output = self.task.output
         job.outputs = []
 
         return job
@@ -331,6 +362,7 @@ class Task:
         self.find_variables()
         self.find_schedule()
         self.find_transforms()
+        self.find_output()
 
     def find_exec_module(self):
         """
@@ -452,10 +484,16 @@ class Task:
             self.transforms = transforms_list
 
     def find_output(self):
-        pass
+        """
+
+        :return:
+        """
+        output = self.spec.get('output')
+        columns = output['columns']
+        self.output = Output(spec=columns)
 
     def find_stage(self):
-        pass
+        raise NotImplementedError('not implemented yet')
 
     def __str__(self):
         retval = yaml.dump(self.spec)
