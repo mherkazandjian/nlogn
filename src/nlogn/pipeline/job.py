@@ -272,7 +272,7 @@ class Job:
         :return:
         """
         task_name = self.task_name + '_relay'
-        POST_TIMEOUT = 3  # timeout for the post request
+        POST_TIMEOUT = 10  # timeout for the post request
 
         log.info(f'[{task_name}] enter dispatch method')
 
