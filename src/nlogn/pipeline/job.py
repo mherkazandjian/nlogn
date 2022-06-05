@@ -244,24 +244,52 @@ class Job:
 
         return prepared_output, columns_info
 
+    async def _post_data(self, connection=None, outputs=None):
+        """
+
+        :param connection:
+        :param outputs:
+        :return:
+        """
+        try:
+            response = requests.post(
+                connection['url'],
+                auth=connection['auth'],
+                headers=connection['headers'],
+                data=json.dumps(outputs),
+                verify=connection['cert'],
+            )
+            retval = 'success', response
+        except:
+            retval = 'failed', None
+
+        return retval
+
     async def dispatch(self, connection=None) -> None:
         """
 
         :param connection:
         :return:
         """
-        log.info(f'[{self.task_name}_relay] enter dispatch method')
+        task_name = self.task_name + '_relay'
+        POST_TIMEOUT = 3  # timeout for the post request
+
+        log.info(f'[{task_name}] enter dispatch method')
 
         # pop the collected outputs/results and print them
         outputs_send = []
         while len(self.outputs) > 0:
             outputs_send.append(self.outputs.pop(0))
 
-        # send the outputs to the relay
-        requests.post(
-            connection['url'],
-            auth=connection['auth'],
-            headers=connection['headers'],
-            data=json.dumps(outputs_send),
-            verify=connection['cert']
-        )
+        atask = asyncio.create_task(self._post_data(connection, outputs_send))
+        log.info(f'[{task_name}] async dispatch post outputs to relay server')
+        await asyncio.wait([atask], timeout=POST_TIMEOUT)
+
+        if atask.done():
+            # handle the sucessful dispatch of the outputs
+
+            status, result = atask.result()
+            log.info(f'[{task_name}] post output = {result}')
+        else:
+            # dispatch post request timed out
+            log.warn(f'[{task_name}] task timed out')
