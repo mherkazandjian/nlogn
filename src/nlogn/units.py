@@ -1,12 +1,11 @@
-import numpy
 import pint
 
 types_map = {
-    'keyword': numpy.str,
-    'text': numpy.str,
-    'float': numpy.float64,
-    'long': numpy.int64,
-    'date': numpy.datetime64
+    'keyword': str,
+    'text': str,
+    'float': float,
+    'long': int,
+    'date': str
 }
 
 _ureg = pint.UnitRegistry()
