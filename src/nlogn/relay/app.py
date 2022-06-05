@@ -58,21 +58,6 @@ def relay_data():
         print('got the following json data')
         print('\t', data)
 
-        pipelines = {
-            'pipeline_1': {
-                'mapping': {
-                    "timestamp": {
-                        "type": "date",
-                        "format": "strict_date_optional_time||epoch_millis"
-                    },
-                    "host": {"type": "keyword"},
-                    "duration": {"type": "float"},
-                    "pct_cpu": {"type": "float"}
-                }
-            }
-        }
-
-        # delete all indices
         cluster_name = 'my_cluster'
         index_prefix = f'{cluster_name}@'
 
