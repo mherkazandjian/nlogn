@@ -12,31 +12,6 @@ assert 'DATABASE' in os.environ
 url = os.environ.get('DATABASE')  # localhost:9200'
 esdb = Database(url=url)
 
-pipelines = {
-    'pipeline_1': {
-        'mapping': {
-            "timestamp": {
-                "type": "date",
-                "format": "strict_date_optional_time||epoch_millis"
-            },
-            "host": {"type": "keyword"},
-            "duration": {"type": "float"},
-            "pct_cpu": {"type": "float"}
-        }
-    }
-}
-
-cluster_name = 'my_cluster'
-index_prefix = f'{cluster_name}@'
-for pipeline_name in pipelines:
-    index_name = f'{index_prefix}{pipeline_name}'
-    mapping = pipelines[pipeline_name]['mapping']
-    esdb.delete_index(index_name, verbose=True)
-    esdb.create_index(
-        name=index_name,
-        mapping=mapping
-    )
-
 print('indices in the database:')
 for index_name in esdb.indices():
     print(f'\t{index_name}')
@@ -79,23 +54,57 @@ def hello_world():
 def relay_data():
     content_type = request.headers.get('Content-Type')
     if content_type == 'application/json':
-        json = request.json
+        data = request.json
         print('got the following json data')
-        print('\t', json)
+        print('\t', data)
 
-        data = json
+        pipelines = {
+            'pipeline_1': {
+                'mapping': {
+                    "timestamp": {
+                        "type": "date",
+                        "format": "strict_date_optional_time||epoch_millis"
+                    },
+                    "host": {"type": "keyword"},
+                    "duration": {"type": "float"},
+                    "pct_cpu": {"type": "float"}
+                }
+            }
+        }
+
+        # delete all indices
+        cluster_name = 'my_cluster'
         index_prefix = f'{cluster_name}@'
-        pipeline_name = list(data.keys())[0]
-        record = data[pipeline_name]
-        index_name = f'{index_prefix}{pipeline_name}'
-        # .. todo:: implement a safe ingest method similar to ingest_dataframe
-        # in the Database class
-        print(esdb.db.index(index=index_name, document=record))
 
-        # add the receive timestamp
-        # right before ingestion add the ingest time (it seems it can be
-        # done at the elsticsearch level?? check it out
-        return json
+        for item in data:
+
+            job_name = item['name']
+            index_name = f'{index_prefix}{job_name}'
+
+            if index_name not in esdb.indices():
+                # esdb.delete_index(index_name, verbose=True)
+                index_mapping = {
+                    "timestamp": {
+                        "type": "date",
+                        "format": "strict_date_optional_time||epoch_millis"
+                    },
+                    "hostname": {"type": "keyword"},
+                }
+
+                for field_name in item['output']:
+                    field_type = item['columns'][field_name]
+                    index_mapping[field_name] = {"type": field_type}
+
+                esdb.create_index(name=index_name, mapping=index_mapping)
+
+            document = item['output']
+            document['timestamp'] = item['timestamp']
+            document['hostname'] = item['hostname']
+
+            #esdb.delete_index(index_name, verbose=True)
+            print(esdb.db.index(index=index_name, document=document))
+
+        return 'success'
     else:
         return 'Content-Type not supported!'
 
