@@ -20,7 +20,8 @@ setup(
         'nlogn.database',
         'nlogn.loggers',
         'nlogn.pipeline',
-        'nlogn.relay'
+        'nlogn.relay',
+        'nlogn.plugins'
         ],
     package_dir={
         'nlogn': os.path.join('src', 'nlogn')
