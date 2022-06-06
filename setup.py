@@ -21,7 +21,8 @@ setup(
         'nlogn.loggers',
         'nlogn.pipeline',
         'nlogn.relay',
-        'nlogn.plugins'
+        'nlogn.plugins',
+        'nlogn.plugins.builtin',
         ],
     package_dir={
         'nlogn': os.path.join('src', 'nlogn')
