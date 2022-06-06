@@ -190,8 +190,9 @@ class Job:
 
             # restore the original trigger interval
             scheduler_job = self.reschedule_job(
-                scheduler_job,
-                scheduler,
+                scheduler_job=scheduler_job,
+                scheduler=scheduler,
+                cluster=cluster,
                 seconds=self.schedule.interval.to('sec').magnitude,
             )
             log.info(f'[{self.task_name}] reset the execution interval')
