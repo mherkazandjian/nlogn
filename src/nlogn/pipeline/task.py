@@ -138,7 +138,13 @@ class TaskRenderer:
         Changes:
           - self.task.module.py_module_spec
         """
-        py_module_spec = importlib.util.find_spec(self.task.exec_module.fully_qualified_name())
+        try:
+            module_path = self.task.exec_module.fully_qualified_name()
+            importlib.util.find_spec(module_path)
+        except ModuleNotFoundError:
+            module_path = module_path.rsplit('.', 1)[0]
+
+        py_module_spec = importlib.util.find_spec(module_path)
         assert py_module_spec is not None
         self.task.exec_module.py_module_spec = py_module_spec
 
@@ -153,9 +159,12 @@ class TaskRenderer:
                   for quick testinf and prototyping, .. todo:: reuse the code and cleanup
         """
         for transform in self.task.transforms:
-            module_path = transform.fully_qualified_name()
-            if not os.path.exists(module_path):
+            try:
+                module_path = transform.fully_qualified_name()
+                importlib.util.find_spec(module_path)
+            except ModuleNotFoundError:
                 module_path = module_path.rsplit('.', 1)[0]
+
             py_module_spec = importlib.util.find_spec(module_path)
             assert py_module_spec is not None
             transform.py_module_spec = py_module_spec
@@ -196,14 +205,28 @@ class TaskRenderer:
         Changes:
           - self.task.module.py_class
         """
+        exec_py_module = self.task.exec_module.py_module
         exec_module_name_only = self.task.exec_module.fully_qualified_name().split('.')[-1]
-        for vname, cls_name in self.task.exec_module.py_module.virtual_name.items():
-            if vname == exec_module_name_only:
-                cls = getattr(self.task.exec_module.py_module, cls_name)
-                break
+
+        if hasattr(exec_py_module, 'virtual_name'):
+            for vname, cls_name in exec_py_module.virtual_name.items():
+                if vname == exec_module_name_only:
+                    cls = getattr(exec_py_module, cls_name)
+                    break
+            else:
+                raise ValueError(f'{exec_module_name_only} not found')
+        elif exec_module_name_only in dir(exec_py_module):
+            cls = getattr(exec_py_module, exec_module_name_only)
         else:
             raise ValueError(f'{exec_module_name_only} not found')
-        self.task.exec_module.py_class = cls
+
+        # set the proper attribute callable or class
+        if type(cls) == type:
+            self.task.exec_module.py_class = cls
+        elif callable(cls):
+            self.task.exec_module.py_func = cls
+        else:
+            raise ValueError(f'transform should be a class type or callable, got {type(cls)}')
 
     def find_transforms_py_module_class(self) -> None:
         """
@@ -267,6 +290,7 @@ class TaskRenderer:
 
         job.task_name = self.task_name
         job.exec_cls = self.task.exec_module.py_class
+        job.exec_func = self.task.exec_module.py_func
         job.input = self.task.exec_module.input
         job.schedule = self.task.schedule
         job.timeout = self.task.timeout
@@ -446,9 +470,13 @@ class Task:
         """
         attr = 'variables'
         variables = {}
-        for key, value in self.spec[attr].items():
-            variables[f'{key}'] = f'{value}'
-        self.variables = variables
+
+        if attr in self.spec:
+            for key, value in self.spec[attr].items():
+                variables[f'{key}'] = f'{value}'
+            self.variables = variables
+        else:
+            self.variables = None
 
     def find_transforms(self):
         """
