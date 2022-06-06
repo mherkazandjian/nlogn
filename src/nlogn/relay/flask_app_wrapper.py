@@ -2,6 +2,7 @@ import os
 from subprocess import Popen
 import shlex
 
+from nlogn import relay
 from nlogn.relay.flask_app_wrapper_utils import parse_args
 
 # .. todo:: use app.run(**flask_only_args) instead of running it as a
@@ -23,6 +24,7 @@ def main():
     env = os.environ.copy()
     env['USERS'] = args.users
     env['DATABASE'] = args.database
+    env['FLASK_APP'] = os.path.join(os.path.dirname(relay.__file__), 'app.py')
 
     process = Popen(
         shlex.split(cmd),
