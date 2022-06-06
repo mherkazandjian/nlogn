@@ -70,6 +70,7 @@ class Job:
     def reschedule_job(self,
                        scheduler_job: apscheduler.job.Job = None,
                        scheduler: apscheduler.schedulers.asyncio.AsyncIOScheduler = None,
+                       cluster: str = '',
                        seconds=None):
         """
         Rescheduler a job by removing it and putting back a the modified job in the scheduler
@@ -88,6 +89,7 @@ class Job:
             max_instances=self.timeout.max_attempts,
             kwargs={
                 'scheduler': scheduler,
+                'cluster': cluster
             }
         )
         return scheduler_job
