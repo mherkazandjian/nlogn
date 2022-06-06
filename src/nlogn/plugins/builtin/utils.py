@@ -2,6 +2,7 @@ import json
 from subprocess import Popen
 from subprocess import PIPE
 import shlex
+import datetime
 
 from .. import Module
 from nlogn.units import bytes_units_converter
@@ -13,7 +14,8 @@ virtual_name = {
     'remove_header': 'remove_header',
     'keep_cols': 'keep_cols',
     'df_cmd_size_single_mount': 'df_cmd_size_single_mount',
-    'df_cmd_inodes_single_mount': 'df_cmd_inodes_single_mount'
+    'df_cmd_inodes_single_mount': 'df_cmd_inodes_single_mount',
+    'date_now': 'date_now'
     # .. todo:: by default the key should have the same name as the module.py
     # .. todo::
     # .. todo:: in case more than one class is defined in the .py file
@@ -73,6 +75,14 @@ def df_cmd_inodes_single_mount(output=None, *args, **kwargs):
     }
 
     return retval
+
+
+def date_now():
+    retval = {
+        'date': datetime.datetime.utcnow().isoformat()
+    }
+    return retval
+
 
 """
 def main(*args, **kwargs):
