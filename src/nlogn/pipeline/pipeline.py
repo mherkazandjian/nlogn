@@ -97,10 +97,10 @@ class Pipeline:
         """
         self.stages_specs = {}
         for name in self.tasks_specs:
-            stage = self.tasks_specs[name]['stage']
-            if stage not in self.stages_specs:
-                self.stages_specs[stage] = []
-            else:
+            stage = self.tasks_specs[name].get('stage')
+            if stage:
+                if stage not in self.stages_specs:
+                    self.stages_specs[stage] = []
                 self.stages_specs[stage].append(name)
 
     def show_specs(self) -> None:
