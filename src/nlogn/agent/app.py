@@ -26,39 +26,40 @@ def main():
         'cert': args.trusted_certificate
     }
 
-    pipeline = Pipeline(args.pipelines)
-    pipeline.show_specs()
-
     loop = asyncio.new_event_loop()
     scheduler = AsyncIOScheduler(event_loop=loop)
 
-    complete_tasks = [task for task in pipeline.tasks_specs if not task.startswith('.')]
-    for task in complete_tasks:
-        task_renderer = TaskRenderer(name=task, pipeline=pipeline)
-        task_renderer.summary()
-        pipeline_job = task_renderer.create_job()
+    for pipeline_path in args.pipelines.split(','):
+        pipeline = Pipeline(pipeline_path)
+        pipeline.show_specs()
 
-        scheduler.add_job(
-            pipeline_job.run,
-            "interval",
-            seconds=pipeline_job.schedule.interval.to('sec').magnitude,
-            id=pipeline_job.task_name,
-            max_instances=pipeline_job.timeout.max_attempts,
-            kwargs={
-                'scheduler': scheduler,
-            }
-        )
+        complete_tasks = [task for task in pipeline.tasks_specs if not task.startswith('.')]
+        for task in complete_tasks:
+            task_renderer = TaskRenderer(name=task, pipeline=pipeline)
+            task_renderer.summary()
+            pipeline_job = task_renderer.create_job()
 
-        scheduler.add_job(
-            pipeline_job.dispatch,
-            "interval",
-            seconds=pipeline_job.schedule.interval.to('sec').magnitude,
-            id=pipeline_job.task_name + '_dispatch',
-            max_instances=1,
-            kwargs={
-                'connection': conn,
-            }
-        )
+            scheduler.add_job(
+                pipeline_job.run,
+                "interval",
+                seconds=pipeline_job.schedule.interval.to('sec').magnitude,
+                id=pipeline_job.task_name,
+                max_instances=pipeline_job.timeout.max_attempts,
+                kwargs={
+                    'scheduler': scheduler,
+                }
+            )
+
+            scheduler.add_job(
+                pipeline_job.dispatch,
+                "interval",
+                seconds=pipeline_job.schedule.interval.to('sec').magnitude,
+                id=pipeline_job.task_name + '_dispatch',
+                max_instances=1,
+                kwargs={
+                    'connection': conn,
+                }
+            )
 
     scheduler.start()
     loop.run_forever()
