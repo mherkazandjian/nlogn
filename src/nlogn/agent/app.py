@@ -47,6 +47,7 @@ def main():
                 max_instances=pipeline_job.timeout.max_attempts,
                 kwargs={
                     'scheduler': scheduler,
+                    'cluster': args.cluster
                 }
             )
 

@@ -92,10 +92,13 @@ class Job:
         )
         return scheduler_job
 
-    async def run(self, scheduler: apscheduler.schedulers.asyncio.AsyncIOScheduler = None) -> None:
+    async def run(self,
+                  cluster: str = '',
+                  scheduler: apscheduler.schedulers.asyncio.AsyncIOScheduler = None) -> None:
         """
         Run the job and handle its interaction with the shceduler
 
+        :param cluster:
         :param scheduler: The scheduler that manages jobs
         """
         log.info(f'[{self.task_name}] enter run func, instance # = {len(self.instances)}')
@@ -178,7 +181,8 @@ class Job:
                     'hostname': hostname,
                     'output': prepared_outputs,
                     'columns': columns_info,
-                    'name': self.task_name
+                    'name': self.task_name,
+                    'cluster': cluster
                 }
             )
 

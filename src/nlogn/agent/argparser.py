@@ -55,4 +55,12 @@ def parse_args():
         help="the path to the configuration file that defines the pipelines"
     )
 
+    parser.add_argument(
+        "--cluster",
+        type=str,
+        default='',
+        dest="cluster",
+        help="the name of the cluster to which this host belongs"
+    )
+
     return parser.parse_args()

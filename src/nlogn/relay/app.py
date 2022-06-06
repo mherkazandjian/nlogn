@@ -13,8 +13,8 @@ url = os.environ.get('DATABASE')  # localhost:9200'
 esdb = Database(url=url)
 
 print('indices in the database:')
-for index_name in esdb.indices():
-    print(f'\t{index_name}')
+for _index_name in esdb.indices():
+    print(f'\t{_index_name}')
 
 app = Flask(__name__)
 auth = HTTPBasicAuth()
@@ -58,12 +58,12 @@ def relay_data():
         print('got the following json data')
         print('\t', data)
 
-        cluster_name = 'my_cluster'
-        index_prefix = f'{cluster_name}@'
 
         for item in data:
 
             job_name = item['name']
+            cluster_name = item['cluster']
+            index_prefix = f'{cluster_name}@'
             index_name = f'{index_prefix}{job_name}'
 
             if index_name not in esdb.indices():
