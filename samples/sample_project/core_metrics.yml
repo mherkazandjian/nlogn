@@ -1,0 +1,51 @@
+---
+stages:
+  - cpu
+  - memory
+
+.schedule:
+  timeout:
+    duration: 2s
+    max_attempts: 5
+  when:
+    interval: 5s
+    cadence_multiplier: 2
+
+
+cpu_usage:
+  extends: .schedule
+  stage: cpu
+  nlogn.builtin.system.cpu_metrics:
+  output:
+    columns:
+      - cpu_used[float]
+      - cpu_n_cores[long]
+      - cpu_current_freq[float:GHz]
+      - cpu_load_ave_1m[float]
+      - cpu_load_ave_5m[float]
+      - cpu_load_ave_15m[float]
+    target: 'name of table or index in es'
+
+cpu_specs:
+  extends: .schedule
+  stage: cpu
+  nlogn.builtin.system.cpu_specs:
+  output:
+    columns:
+      - sockets[long]
+      - cores_per_socket[long]
+      - threads_per_core[long]
+      - model_name[keyword]
+    target: 'name of table or index in es'
+
+ram_usage:
+  extends: .schedule
+  stage: memory
+  nlogn.builtin.system.mem_metrics:
+  output:
+    columns:
+      - mem_used[float:GB]
+      - mem_total[float:GB]
+      - mem_swap[float:GB]
+    target: 'name of table or index in es'
+...
