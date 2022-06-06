@@ -94,7 +94,11 @@ class ExecModule:
         variables = []
         attr_v = getattr(self, attr)
         for key, value in attr_v.items():
-            variables.extend(list(filter(lambda x: x.startswith('$'), value.split(' '))))
+            if isinstance(value, (list, tuple)):
+                for item in value:
+                    variables.extend(list(filter(lambda x: x.startswith('$'), item.split(' '))))
+            else:
+                variables.extend(list(filter(lambda x: x.startswith('$'), value.split(' '))))
         return tuple(variables)
 
     def replace_variables(self, variables: dict = None):
