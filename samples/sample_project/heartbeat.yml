@@ -3,9 +3,15 @@ stages:
   - heatbeat
 
 heatbeat:
-  nlogn.builtin.heartbeat:
-  stage: heatbeat
+  stage: heartbeat
+  timeout:
+    duration: 5s
+    max_attempts: 3
   when:
-    cadence: 1
-    unit: seconds
+    interval: 30s
+    cadence_multiplier: 2
+  nlogn.builtin.utils.uptime:
+  output:
+    columns:
+      - uptime[long]
 ...
