@@ -27,6 +27,7 @@ class Job:
         """
         self.task_name = None
         self.exec_cls = None
+        self.exec_func = None
         self.input = None
         self.schedule = None
         self.timeout = None
@@ -50,11 +51,17 @@ class Job:
         pass
 
     async def _run(self):
-        instance = self.exec_cls(**self.input)
-        #await asyncio.sleep(10)
+        if self.exec_cls:
+            instance = self.exec_cls(**self.input)
+            _callable = instance.run
+        elif self.exec_func:
+            _callable = self.exec_func
+        else:
+            raise ValueError('either a exec class of a callable should be set')
+
         # run the exec class in a safe manner
         try:
-            output = 'success', instance.run()
+            output = 'success', _callable()
         except:
             output = 'failed', None
 
