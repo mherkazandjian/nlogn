@@ -58,12 +58,14 @@ def relay_data():
         print('got the following json data')
         print('\t', data)
 
-
         for item in data:
 
             job_name = item['name']
             cluster_name = item['cluster']
-            index_prefix = f'{cluster_name}@'
+            if cluster_name:
+                index_prefix = f'{cluster_name}@'
+            else:
+                index_prefix = ''
             index_name = f'{index_prefix}{job_name}'
 
             if index_name not in esdb.indices():
