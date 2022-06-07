@@ -49,3 +49,4 @@ wcwidth==0.2.5
 Werkzeug==2.0.2
 pandas==1.4.0
 APScheduler==3.9.1
+Pint==0.19.1
