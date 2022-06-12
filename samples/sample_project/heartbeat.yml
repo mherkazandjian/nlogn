@@ -2,7 +2,7 @@
 stages:
   - heatbeat
 
-heatbeat:
+heartbeat:
   stage: heartbeat
   timeout:
     duration: 5s

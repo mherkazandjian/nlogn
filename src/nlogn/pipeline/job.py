@@ -103,7 +103,7 @@ class Job:
         :param cluster:
         :param scheduler: The scheduler that manages jobs
         """
-        log.info(f'[{self.task_name}] enter run func, instance # = {len(self.instances)}')
+        log.debug(f'[{self.task_name}] enter run func, instance # = {len(self.instances)}')
 
         # fetch the job instance in the scheduler and create a copy of the original job trigger
         # in the scheduler
@@ -122,10 +122,10 @@ class Job:
         # run the exec class asyncroneously
         atask = asyncio.create_task(self._run())
         self.instances.append(atask)
-        log.info(f'[{self.task_name}] run exec class in async mode with a timeout')
+        log.debug(f'[{self.task_name}] run exec class in async mode with a timeout')
         await asyncio.wait([atask], timeout=self.timeout.duration.to('sec').magnitude)
-        log.info(f'[{self.task_name}] async task {atask} either finished or timed out')
-        log.info(f'[{self.task_name}] # instances {len(self.instances)}')
+        log.debug(f'[{self.task_name}] async task {atask} either finished or timed out')
+        log.debug(f'[{self.task_name}] # instances {len(self.instances)}')
 
         if atask.done():
             # handle the sucessful execution of the exec class (i.e no timeout, not necessarily
@@ -135,7 +135,7 @@ class Job:
             #   - exec class success (assumed yes)
             #   - exec class failed  (not implemented yet)
             status, result = atask.result()
-            log.info(f'[{self.task_name}] output = {result}')
+            log.debug(f'[{self.task_name}] output = {result}')
 
             # if exec class success
             #   assumed yes ...
@@ -195,8 +195,8 @@ class Job:
                 cluster=cluster,
                 seconds=self.schedule.interval.to('sec').magnitude,
             )
-            log.info(f'[{self.task_name}] reset the execution interval')
-            log.info(f'[{self.task_name}] \t {scheduler_job.trigger.interval}')
+            log.debug(f'[{self.task_name}] reset the execution interval')
+            log.debug(f'[{self.task_name}] \t {scheduler_job.trigger.interval}')
 
             # clear the atasks that were in the list of instances (if any)
             # any successful execution clears all prior instances
@@ -296,14 +296,14 @@ class Job:
             outputs_send.append(self.outputs.pop(0))
 
         atask = asyncio.create_task(self._post_data(connection, outputs_send))
-        log.info(f'[{task_name}] async dispatch post outputs to relay server')
+        log.debug(f'[{task_name}] async dispatch post outputs to relay server')
         await asyncio.wait([atask], timeout=POST_TIMEOUT)
 
         if atask.done():
             # handle the sucessful dispatch of the outputs
 
             status, result = atask.result()
-            log.info(f'[{task_name}] post output = {result}')
+            log.debug(f'[{task_name}] post output = {result}')
         else:
             # dispatch post request timed out
             log.warn(f'[{task_name}] task timed out')
