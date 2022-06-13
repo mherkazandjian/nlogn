@@ -114,7 +114,7 @@ class Job:
         # do not execute the exec class if the number of failed attempts
         # has reached the max attempts specified by the task
         if len(self.instances) >= self.timeout.max_attempts:
-            log.warn(f'[{self.task_name}] skip execution since max attempts is reached')
+            log.warning(f'[{self.task_name}] skip execution since max attempts is reached')
             return
 
         log.info(f'[{self.task_name}] \t execute job')
@@ -144,7 +144,7 @@ class Job:
             # elif result.error
         else:
             # exec class timed out, set the flags and result and update the next run time
-            log.warn(f'[{self.task_name}] task timed out')
+            log.warning(f'[{self.task_name}] task timed out')
             status = 'timeout'
             result = None
 
@@ -159,8 +159,8 @@ class Job:
                 scheduler,
                 seconds=scheduler_job.trigger.interval.seconds * self.schedule.cadence_multiplier,
             )
-            log.warn(f'[{self.task_name}] next execution time extended')
-            log.warn(f'[{self.task_name}] \t {scheduler_job.trigger.interval}')
+            log.warning(f'[{self.task_name}] next execution time extended')
+            log.warning(f'[{self.task_name}] \t {scheduler_job.trigger.interval}')
         elif status == 'success':
 
             # time stamp and store the result asap before overheads creep
@@ -205,7 +205,7 @@ class Job:
             #           in case a maximum is reached
             if len(self.instances) > 0:
                 self.instances = []
-                log.warn(f'[{self.task_name}] instances list cleared')
+                log.debug(f'[{self.task_name}] instances list cleared')
 
     def transform(self, output):
         """
@@ -306,4 +306,4 @@ class Job:
             log.debug(f'[{task_name}] post output = {result}')
         else:
             # dispatch post request timed out
-            log.warn(f'[{task_name}] task timed out')
+            log.warning(f'[{task_name}] task timed out')

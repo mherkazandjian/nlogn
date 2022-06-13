@@ -1,5 +1,6 @@
-import logging
+import os
 import sys
+import logging
 
 BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(8)
 # The background is set with 40 plus the number of the color, and the
@@ -44,13 +45,26 @@ class ColoredFormatter(logging.Formatter):
 logger = logging.getLogger('nlogn')
 logger.log_depth = 0
 
+log_levels = {
+    'notest': logging.NOTSET,
+    'debug': logging.DEBUG,
+    'info': logging.INFO,
+    'warning': logging.WARNING,
+    'error': logging.ERROR,
+    'critical': logging.CRITICAL
+}
+
+
 if not len(logger.handlers):
 
-    logger.setLevel(logging.DEBUG)
+    _log_level = os.environ.get('NLOGN_LOG_LEVEL', 'info')
+    log_level = log_levels[_log_level]
+
+    logger.setLevel(log_level)
 
     # create console handler and set level to debug
     ch = logging.StreamHandler(sys.stdout)
-    ch.setLevel(logging.DEBUG)
+    ch.setLevel(log_level)
 
     # create formatter
     formatter = logging.Formatter(
@@ -72,3 +86,11 @@ if not len(logger.handlers):
 
     # add ch to logger
     logger.addHandler(ch)
+
+    # DEV
+    logger.info('test info message')
+    logger.debug('test debug message')
+    logger.warning('test warning message')
+    logger.error('test error message')
+    logger.critical('test critical message')
+    # END DEV

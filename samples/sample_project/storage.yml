@@ -88,12 +88,12 @@ shm_part_usage_inodes:
     cmd: df -Bk $MOUNT_POINT
   output:
     transform:
-      - nlogn.builtin.utils.df_cmd_inodes_single_mount:
+      - nlogn.builtin.utils.df_cmd_size_single_mount:
     columns:
       - filesystem[keyword]
       - mount[keyword]
-      - size[long:KB]
-      - used[long:KB]
+      - size_total[long:KB]
+      - size_used[long:KB]
     target: 'name of table or index in es'
 
 .nfs_usage_inodes:
@@ -102,8 +102,7 @@ shm_part_usage_inodes:
     cmd: df -i $MOUNT_POINT
   output:
     transform:
-      - nlogn.builtin.utils.remove_header:
-          lines: 1
+      - nlogn.builtin.utils.df_cmd_inodes_single_mount:
     columns:
       - filesystem[str]
       - mount[str]
