@@ -295,15 +295,18 @@ class Job:
         while len(self.outputs) > 0:
             outputs_send.append(self.outputs.pop(0))
 
-        atask = asyncio.create_task(self._post_data(connection, outputs_send))
-        log.debug(f'[{task_name}] async dispatch post outputs to relay server')
-        await asyncio.wait([atask], timeout=POST_TIMEOUT)
+        if len(outputs_send) > 0:
+            atask = asyncio.create_task(self._post_data(connection, outputs_send))
+            log.debug(f'[{task_name}] async dispatch post outputs to relay server')
+            await asyncio.wait([atask], timeout=POST_TIMEOUT)
 
-        if atask.done():
-            # handle the sucessful dispatch of the outputs
+            if atask.done():
+                # handle the sucessful dispatch of the outputs
 
-            status, result = atask.result()
-            log.debug(f'[{task_name}] post output = {result}')
+                status, result = atask.result()
+                log.debug(f'[{task_name}] post output = {result}')
+            else:
+                # dispatch post request timed out
+                log.warning(f'[{task_name}] task timed out')
         else:
-            # dispatch post request timed out
-            log.warning(f'[{task_name}] task timed out')
+            log.debug('not buffered data to be dispatched')
