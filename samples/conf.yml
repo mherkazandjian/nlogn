@@ -1,0 +1,7 @@
+---
+logger:
+  channels:
+    file:
+      path: 'debug.log'
+      level: 'critical'
+...
