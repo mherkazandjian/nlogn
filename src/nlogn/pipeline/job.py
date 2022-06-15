@@ -235,7 +235,7 @@ class Job:
         #    if task.done():
         #        tas
 
-        log.debug(f'[{self.task_name}] # tasks in the asyncio loop {len(asyncio.tasks.all_tasks())}')
+        log.debug(f'[{self.task_name}] {len(asyncio.tasks.all_tasks())} task(s) in the asyncio loop ')
 
     def transform(self, output):
         """
