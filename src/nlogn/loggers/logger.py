@@ -116,10 +116,10 @@ def create_logger():
     # create the logger instance
     logger = logging.getLogger(logger_name)
     logger.log_depth = 0
+    logger.setLevel(log_levels['debug'])
 
     _log_level = os.environ.get(logger_level_env_var, 'info')
     log_level = log_levels[_log_level]
-    logger.setLevel(log_level)
 
     # add terminal output channel to logger
     stream_handler = create_stream_handler(log_level)
