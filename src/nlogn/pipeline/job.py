@@ -285,10 +285,10 @@ class Job:
         :param connection:
         :return:
         """
-        task_name = self.task_name + '_relay'
+        task_name = self.task_name + '_dispatch'
         POST_TIMEOUT = 10  # timeout for the post request
 
-        log.info(f'[{task_name}] enter dispatch method')
+        log.debug(f'[{task_name}] enter dispatch method')
 
         # pop the collected outputs/results and print them
         outputs_send = []
@@ -302,9 +302,14 @@ class Job:
 
             if atask.done():
                 # handle the sucessful dispatch of the outputs
-
                 status, result = atask.result()
                 log.debug(f'[{task_name}] post output = {result}')
+                if result.status_code != 200:
+                    msg = (
+                        f'[{task_name}] either the request that was sent was malformed \n'
+                        f'[{task_name}] or something went wrong on the server side'
+                    )
+                    log.error(msg)
             else:
                 # dispatch post request timed out
                 log.warning(f'[{task_name}] task timed out')
