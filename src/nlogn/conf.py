@@ -4,6 +4,7 @@
 import os
 import copy
 import logging
+import hashlib
 import yaml
 
 from watchdog.observers import Observer
@@ -33,7 +34,7 @@ def update_file_logger(conf):
             log_level=conf.conf['logger']['channels']['file']['level'],
             fpath=conf.conf['logger']['channels']['file']['path'],
         )
-        nlogn.log.info(f"add file channel to the logger {os.path.abspath(conf.conf['logger']['channels']['file']['path'])}")
+        nlogn.log.debug(f"add file channel to the logger {os.path.abspath(conf.conf['logger']['channels']['file']['path'])}")
         nlogn.log.addHandler(file_log_channel)
 
 
@@ -67,6 +68,12 @@ class ConfFileChangeEventHandler(FileSystemEventHandler):
         nlogn.log.debug(f'{conf_fpath} has changed, watchdog event is {event}')
         if not isinstance(event, FileModifiedEvent):
             nlogn.log.debug(f'{conf_fpath} not a file change: {event}')
+            return
+
+        if conf.conf_hash == conf.old_conf_hash:
+            nlogn.log.debug(f'{conf_fpath} changed: {event}')
+            nlogn.log.debug('but the parsed content/values are identical')
+            nlogn.log.debug('nothing to do')
             return
 
         # .. todo:: only apply changes to the config if the actual configs have
@@ -125,7 +132,9 @@ class Config:
         self._conf_path = conf_path
         self.conf_path = conf_path
         self.conf = None
+        self.conf_hash = None
         self.old_conf = None
+        self.old_conf_hash = None
         self.observer = None
 
         if self._conf_path:
@@ -150,17 +159,31 @@ class Config:
             content = yaml.safe_load(fobj.read())
             self.update_conf(content)
 
+    @staticmethod
+    def compute_conf_hash(conf):
+        hash = hashlib.md5()
+        hash.update(yaml.dump(conf).encode())
+        digest = hash.digest()
+        return digest
+
     def update_conf(self, new_conf):
         """
         Update the configuration content to both the current and old attrs
 
         :param new_conf: the new configuration
         """
+        new_hash = self.compute_conf_hash(new_conf)
+
         if self.conf:
             # old conf is set to current conf, current conf is set to new_conf
+            self.old_conf_hash, self.conf_hash = self.compute_conf_hash(self.conf), new_hash
             self.old_conf, self.conf = copy.copy(self.conf), copy.copy(new_conf)
         else:
+            self.old_conf_hash, self.conf_hash = None, new_hash
             self.old_conf, self.conf = None, copy.copy(new_conf)
+
+        nlogn.log.debug(f'old config {self.old_conf}')
+        nlogn.log.debug(f'new config {self.conf}')
 
     def observe_conf_file(self):
         event_handler = ConfFileChangeEventHandler(conf=self)
