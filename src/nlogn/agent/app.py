@@ -1,8 +1,10 @@
+import os
 import asyncio
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from requests.auth import HTTPBasicAuth
 
+from nlogn.conf import Config
 from nlogn.agent.argparser import parse_args
 from nlogn.pipeline.pipeline import Pipeline
 from nlogn.pipeline.task import TaskRenderer
@@ -10,6 +12,10 @@ from nlogn.pipeline.task import TaskRenderer
 
 def main():
     args = parse_args()
+
+    conf = None
+    if args.conf:
+        conf = Config(os.path.expanduser(args.conf))
 
     url = f'{args.relay_host}/relay_data'
     auth = HTTPBasicAuth(args.username, args.password)
@@ -64,6 +70,10 @@ def main():
 
     scheduler.start()
     loop.run_forever()
+
+    if conf:
+        conf.stop_observer()
+
 
 
 if __name__ == '__main__':

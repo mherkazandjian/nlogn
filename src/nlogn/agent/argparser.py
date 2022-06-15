@@ -63,4 +63,12 @@ def parse_args():
         help="the name of the cluster to which this host belongs"
     )
 
+    parser.add_argument(
+        "--conf",
+        type=str,
+        default='',
+        dest="conf",
+        help="the path to the configuration file"
+    )
+
     return parser.parse_args()
