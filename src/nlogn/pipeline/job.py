@@ -5,11 +5,17 @@ import json
 import copy
 import asyncio
 import socket
+import time
 from datetime import datetime
 
 import warnings
-warnings.filterwarnings('ignore', message='Certificate for localhost has no')
+warnings.filterwarnings('ignore', message='Certificate for ')
 import requests
+import urllib3
+urllib3.disable_warnings()
+import requests.packages.urllib3
+requests.packages.urllib3.disable_warnings()
+# .. todo:: clean up these warning ignore mechanisms
 
 import apscheduler.schedulers.asyncio
 
