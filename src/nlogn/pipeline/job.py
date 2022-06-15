@@ -67,7 +67,10 @@ class Job:
 
         # run the exec class in a safe manner
         try:
+            t0 = time.time()
             output = 'success', _callable()
+            dt = time.time() - t0
+            log.debug(f'[{self.task_name}] callable for task finished in {dt:5.2}s')
         except:
             output = 'failed', None
 
@@ -98,6 +101,7 @@ class Job:
                 'cluster': cluster
             }
         )
+
         return scheduler_job
 
     async def run(self,
@@ -109,6 +113,7 @@ class Job:
         :param cluster:
         :param scheduler: The scheduler that manages jobs
         """
+        _t0 = time.time()
         log.debug(f'[{self.task_name}] enter run func, instance # = {len(self.instances)}')
 
         # fetch the job instance in the scheduler and create a copy of the original job trigger
@@ -126,11 +131,13 @@ class Job:
         log.info(f'[{self.task_name}] \t execute job')
 
         # run the exec class asyncroneously
+        t0 = time.time()
         atask = asyncio.create_task(self._run())
         self.instances.append(atask)
         log.debug(f'[{self.task_name}] run exec class in async mode with a timeout')
         await asyncio.wait([atask], timeout=self.timeout.duration.to('sec').magnitude)
-        log.debug(f'[{self.task_name}] async task {atask} either finished or timed out')
+        dt = time.time() - t0
+        log.debug(f'[{self.task_name}] {atask} either finished in {dt:5.2f}s or timed out')
         log.debug(f'[{self.task_name}] # instances {len(self.instances)}')
 
         if atask.done():
@@ -194,15 +201,23 @@ class Job:
                 }
             )
 
-            # restore the original trigger interval
-            scheduler_job = self.reschedule_job(
-                scheduler_job=scheduler_job,
-                scheduler=scheduler,
-                cluster=cluster,
-                seconds=self.schedule.interval.to('sec').magnitude,
-            )
-            log.debug(f'[{self.task_name}] reset the execution interval')
-            log.debug(f'[{self.task_name}] \t {scheduler_job.trigger.interval}')
+            # restore the original trigger interval if its interval has been modified
+            original_trigger_dt = self.schedule.interval.to('sec').magnitude
+            current_trigger_dt = scheduler_job.trigger.interval.seconds
+            trigger_dt_rel_diff = abs(1.0 - current_trigger_dt / original_trigger_dt)
+            # consider a different greater than 1% a difference and reset it
+            # .. todo:: this means that a cadance multiplier minimum is 1% (probably most cadance
+            #           multipliers will be larger than 2 anyway so this is quite safe compared
+            #           to using original_trigger_dt - current_trigger_dt == 0.0
+            if trigger_dt_rel_diff > 1e-1:
+                scheduler_job = self.reschedule_job(
+                    scheduler_job=scheduler_job,
+                    scheduler=scheduler,
+                    cluster=cluster,
+                    seconds=self.schedule.interval.to('sec').magnitude,
+                )
+                log.debug(f'[{self.task_name}] reset the execution interval')
+                log.debug(f'[{self.task_name}] \t {scheduler_job.trigger.interval}')
 
             # clear the atasks that were in the list of instances (if any)
             # any successful execution clears all prior instances
@@ -212,6 +227,15 @@ class Job:
             if len(self.instances) > 0:
                 self.instances = []
                 log.debug(f'[{self.task_name}] instances list cleared')
+
+            _dt = time.time() - _t0
+            log.debug(f'[{self.task_name}] total time running {_dt:5.2f}s')
+
+        #for task in asyncio.tasks.all_tasks():
+        #    if task.done():
+        #        tas
+
+        log.debug(f'[{self.task_name}] # tasks in the asyncio loop {len(asyncio.tasks.all_tasks())}')
 
     def transform(self, output):
         """
@@ -266,12 +290,15 @@ class Job:
 
     async def _post_data(self, connection=None, outputs=None):
         """
+        Execute the actual rest api call to dispatch the collectedd output to the relay server
 
         :param connection:
         :param outputs:
         :return:
         """
+        task_name = self.task_name + '_dispatch'
         try:
+            log.debug(f'[{task_name}]: try post data using requests')
             response = requests.post(
                 connection['url'],
                 auth=connection['auth'],
@@ -280,44 +307,62 @@ class Job:
                 verify=connection['cert'],
             )
             retval = 'success', response
+            log.debug(f'[{task_name}]: post succeeded')
+            # .. todo:: a success is considered a success if the data on the server side
+            #           is ingested into the database, i.e ensure that no data is lost
         except:
+            log.error(f'[{task_name}]: post failed')
             retval = 'failed', None
 
         return retval
 
     async def dispatch(self, connection=None) -> None:
         """
+        Handle collected the buffered outputs and dispatch them to the relay server
 
         :param connection:
         :return:
         """
+        _t0 = time.time()
         task_name = self.task_name + '_dispatch'
-        POST_TIMEOUT = 10  # timeout for the post request
+        post_timeout = 10  # timeout for the post request
 
         log.debug(f'[{task_name}] enter dispatch method')
 
         # pop the collected outputs/results and print them
+        t0 = time.time()
         outputs_send = []
         while len(self.outputs) > 0:
             outputs_send.append(self.outputs.pop(0))
+        dt = time.time() - t0
+        log.debug(f'[{task_name}]: {len(outputs_send)} outputs collected in {dt:5.2f} seconds')
 
         if len(outputs_send) > 0:
             atask = asyncio.create_task(self._post_data(connection, outputs_send))
             log.debug(f'[{task_name}] async dispatch post outputs to relay server')
-            await asyncio.wait([atask], timeout=POST_TIMEOUT)
+            t0 = time.time()
+            await asyncio.wait([atask], timeout=post_timeout)
+            dt = time.time() - t0
+            log.debug(f'[{task_name}]: async task to dispath data finished in {dt:5.2f} seconds')
 
             if atask.done():
                 # handle the sucessful dispatch of the outputs
                 status, result = atask.result()
                 log.debug(f'[{task_name}] post output = {result}')
-                if result.status_code != 200:
+                if not result or (result and result.status_code != 200):
                     msg = (
                         f'[{task_name}] either the request that was sent was malformed \n'
-                        f'[{task_name}] or something went wrong on the server side'
+                        f'[{task_name}] or something went wrong on the server side (e.g dead server'
                     )
                     log.error(msg)
+                    # .. todo:: in the case of a failiur make sure that the collected data is
+                    #           put back into the buffer
             else:
                 # dispatch post request timed out
                 log.warning(f'[{task_name}] task timed out')
+                # .. todo:: in the case of a failiur make sure that the collected data is
+                #           put back into the buffer
         else:
-            log.debug('not buffered data to be dispatched')
+            log.debug('no buffered data to be dispatched')
+        _dt = time.time() - _t0
+        log.debug(f'[{task_name}]: async dispatch method finished in {_dt:5.2f} seconds')
