@@ -1,4 +1,5 @@
 import os
+import logging
 import asyncio
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -32,8 +33,10 @@ def main():
         'cert': args.trusted_certificate
     }
 
+    #logging.getLogger('apscheduler').setLevel(logging.DEBUG)
     loop = asyncio.new_event_loop()
     scheduler = AsyncIOScheduler(event_loop=loop)
+    misfire_grace_time = 10  # .. todo:: put this in the conf file
 
     for pipeline_path in args.pipelines.split(','):
         pipeline = Pipeline(pipeline_path)
@@ -51,18 +54,23 @@ def main():
                 seconds=pipeline_job.schedule.interval.to('sec').magnitude,
                 id=pipeline_job.task_name,
                 max_instances=pipeline_job.timeout.max_attempts,
+                misfire_grace_time=misfire_grace_time,
                 kwargs={
                     'scheduler': scheduler,
                     'cluster': args.cluster
                 }
             )
 
+            # .. todo:: probably to avoid congestion only one such job can be used to
+            #           dispatch all the collected data to the relay instead of doing
+            #           it like this and having one dispatch job per pipeline task
             scheduler.add_job(
                 pipeline_job.dispatch,
                 "interval",
                 seconds=pipeline_job.schedule.interval.to('sec').magnitude,
                 id=pipeline_job.task_name + '_dispatch',
                 max_instances=1,
+                misfire_grace_time=misfire_grace_time,
                 kwargs={
                     'connection': conn,
                 }
