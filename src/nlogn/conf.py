@@ -7,9 +7,24 @@ import logging
 import yaml
 
 from watchdog.observers import Observer
-from watchdog.events import PatternMatchingEventHandler
+from watchdog.events import FileSystemEventHandler
+from watchdog.events import FileModifiedEvent
 
 import nlogn
+
+
+def safe_remove_file_handler():
+    log = nlogn.log
+    for handler in log.handlers:
+        if isinstance(handler, logging.FileHandler):
+            break
+    else:
+        handler = None
+
+    if handler:
+        handler.flush()
+        log.removeHandler(handler)
+        # .. todo:: rename the log file by moving it to e.g 'debug.log.old'  (or timestmap)
 
 
 def update_file_logger(conf):
@@ -22,7 +37,7 @@ def update_file_logger(conf):
         nlogn.log.addHandler(file_log_channel)
 
 
-class ConfFileChangeEventHandler(PatternMatchingEventHandler):
+class ConfFileChangeEventHandler(FileSystemEventHandler):
     def __init__(self, *args, **kwargs):
         """
         Constructor
@@ -40,34 +55,64 @@ class ConfFileChangeEventHandler(PatternMatchingEventHandler):
         self.conf = conf
 
     def on_modified(self, event):
-        self.conf.load()
-        conf_fpath = self.conf.conf_path
-        nlogn.log.info(f'{conf_fpath} has changed')
+        """
+
+        :param event:
+        :return:
+        """
+        conf = self.conf
+        conf.load()
+        conf_fpath = conf.conf_path
+
+        nlogn.log.debug(f'{conf_fpath} has changed, watchdog event is {event}')
+        if not isinstance(event, FileModifiedEvent):
+            nlogn.log.debug(f'{conf_fpath} not a file change: {event}')
+            return
+
+        # .. todo:: only apply changes to the config if the actual configs have
+        #           changed, i.e convet the confic to a json string and compute the
+        #           md5sum
 
         # only support changing the debug level
         # .. todo:: implement doing the changes in a better way, i.e support changing the
         #           file path, format...etc..
-        new_log_level = self.conf.conf['logger']['channels']['file']['level']
-        old_log_level = self.conf.old_conf['logger']['channels']['file']['level']
-        if new_log_level != old_log_level:
-            # .. todo:: use the python diff module to display the diff of the config
-            #           file before and after
+        new_channels = conf.conf['logger'].get('channels')
+        if new_channels and new_channels['file']['level']:
+            new_log_level = new_channels['file']['level']
+        else:
+            new_log_level = None
+        # .. todo:: use the python diff module to display the diff of the config
+        #           file before and after
 
-            # find the file handler and remove it cleanly
-            log = nlogn.log
-            for handler in log.handlers:
-                if isinstance(handler, logging.FileHandler):
-                    break
-            else:
-                handler = None
+        old_channels = conf.old_conf['logger'].get('channels')
+        if old_channels and old_channels['file']['level']:
+            old_log_level = old_channels['file']['level']
+        else:
+            old_log_level = None
 
-            if handler:
-                handler.flush()
-                log.removeHandler(handler)
-                # .. todo:: rename the log file by moving it to e.g 'debug.log.old'  (or timestmap)
-
+        if not new_log_level and old_log_level:
+            nlogn.log.debug(f'file handler log settings have been removed. Delete the file handler')
+            # no new file handler is specified but there was a file handler in the older config
+            safe_remove_file_handler()
+        elif new_log_level and not old_log_level:
+            nlogn.log.debug(f'add a new file handler to the logger')
+            # new file handler is specified and there was no file handler in the older config
+            update_file_logger(conf)
+        elif new_log_level and old_log_level and new_log_level != old_log_level:
+            nlogn.log.debug(f'file hanlder logger log level has changed')
+            nlogn.log.debug(f'remove the old logger and add the new one with the new log level')
+            # .. todo:: maybe this can be done without actually deleting it but by only changing
+            #           the log level?
+            # new file handler is specified and there was a file handler in the older config
+            safe_remove_file_handler()
             # add the new file handler with the updated log level
-            update_file_logger(self.conf)
+            update_file_logger(conf)
+        elif new_log_level == old_log_level:
+            nlogn.log.debug(f'no changes in the log level or file logger settings')
+            # no changes need to be done
+            pass
+        else:
+            raise ValueError('should not get here')
 
 
 class Config:
@@ -99,12 +144,23 @@ class Config:
 
     def load(self):
         """
-
-        :return:
+        Read the configuration file and set its content to the attributes
         """
         with open(self.conf_path) as fobj:
             content = yaml.safe_load(fobj.read())
             self.update_conf(content)
+
+    def update_conf(self, new_conf):
+        """
+        Update the configuration content to both the current and old attrs
+
+        :param new_conf: the new configuration
+        """
+        if self.conf:
+            # old conf is set to current conf, current conf is set to new_conf
+            self.old_conf, self.conf = copy.copy(self.conf), copy.copy(new_conf)
+        else:
+            self.old_conf, self.conf = None, copy.copy(new_conf)
 
     def observe_conf_file(self):
         event_handler = ConfFileChangeEventHandler(conf=self)
@@ -116,10 +172,3 @@ class Config:
     def stop_observer(self):
         self.observer.stop()
         self.observer.join()
-
-    def update_conf(self, new_conf):
-        if self.conf:
-            self.old_conf, self.conf = copy.copy(self.conf), new_conf
-        else:
-            self.conf = new_conf
-            self.old_conf = copy.copy(self.conf)

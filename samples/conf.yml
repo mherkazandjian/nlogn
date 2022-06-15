@@ -2,6 +2,6 @@
 logger:
   channels:
     file:
-      path: 'debug.log'
+      path: 'nlogn_debug.log'
       level: 'debug'
 ...
