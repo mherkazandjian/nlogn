@@ -36,10 +36,6 @@ stages:
   output:
     transform:
       - nlogn.builtin.utils.df_cmd_inodes_single_mount:
-#      - nlogn.builtin.utils.remove_header:
-#          lines: 1
-#      - nlogn.builtin.utils.keep_cols:
-#          cols: [0, 1, 2, -1]
     columns:
       - filesystem[keyword]
       - mount[keyword]

@@ -65,6 +65,9 @@ class ExecModule:
         """
         Replace the shortened module path with the fully quialified path
         """
+        # appending 'plugins' after 'nlogn.' is needed only for the builtin
+        # plugins. i.e nlogn.plugins.builtin.xyz can be refered as
+        # nlogn.builtin.xyz instead of repeating 'plugins.' everytime
         real_module_path = self.module.replace('nlogn.', 'nlogn.plugins.')
         return real_module_path
 
