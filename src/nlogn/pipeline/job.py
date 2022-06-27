@@ -60,15 +60,17 @@ class Job:
         if self.exec_cls:
             instance = self.exec_cls(**self.input)
             _callable = instance.run
+            _kwargs = {}
         elif self.exec_func:
             _callable = self.exec_func
+            _kwargs = self.input
         else:
             raise ValueError('either a exec class of a callable should be set')
 
         # run the exec class in a safe manner
         try:
             t0 = time.time()
-            output = 'success', _callable()
+            output = 'success', _callable(**_kwargs)
             dt = time.time() - t0
             log.debug(f'[{self.task_name}] callable for task finished in {dt:5.2}s')
         except:

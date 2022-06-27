@@ -1,0 +1,54 @@
+---
+stages:
+  - slurm
+
+squeue_all:
+  stage: slurm
+  timeout:
+    duration: 5s
+    max_attempts: 3
+  when:
+    interval: 5s
+    cadence_multiplier: 2
+  nlogn.builtin.slurm.squeue_all:
+    keep_columns:
+      - account
+      - end_time
+      - jobid
+      - name
+      - time_limit
+      - command
+      - priority
+      - reason
+      - cpus
+      - nodes
+      - array_job_id
+      - time
+      - nodelist
+      - partition
+      - start_time
+      - state
+      - submit_time
+      - work_dir
+  output:
+    columns:
+      - account[keyword]
+      - end_time[long]
+      - jobid[long]
+      - name[str]
+      - time_limit[long]
+      - command[str]
+      - priority[float]
+      - reason[str]
+      - cpus[long]
+      - nodes[long]
+      - array_job_id[long]
+      - time[long]
+      - nodelist[str]
+      - partition[keyword]
+      - start_time[long]
+      - state[keyword]
+      - submit_time[long]
+      - work_dir[str]
+...
+
