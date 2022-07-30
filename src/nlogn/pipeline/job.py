@@ -184,16 +184,28 @@ class Job:
             # get the hostname
             hostname = socket.gethostname()
 
-            # run the transforms stack
-            transformed_output = self.transform(result)
+            # check the returned type of the result and put it in a list
+            # if it is a dict and assign it to a variable expected to be
+            # used later on
+            if isinstance(result, dict):
+                results = [result]
+            elif isinstance(result, list):
+                results = result
+            else:
+                raise ValueError(
+                    f'unsupported result: expected "dict" or "list" got "{type(result)}"'
+                )
 
-            # check that the transformed data is in line with the expected columns
-            # and do the unit conversion and prepare the type info to be appended to the ouput
-            prepared_outputs, columns_info = self.prepare_outputs(transformed_output)
+            for _result in results:
+                # run the transforms stack
+                transformed_output = self.transform(_result)
 
-            # store the output that is ready to be dispatched
-            self.outputs.append(
-                {
+                # check that the transformed data is in line with the expected columns
+                # and do the unit conversion and prepare the type info to be appended to the ouput
+                prepared_outputs, columns_info = self.prepare_outputs(transformed_output)
+
+                # store the output that is ready to be dispatched
+                output = {
                     'timestamp': timestamp_str,
                     'hostname': hostname,
                     'output': prepared_outputs,
@@ -201,12 +213,13 @@ class Job:
                     'name': self.task_name,
                     'cluster': cluster
                 }
-            )
+
+                self.outputs.append(output)
 
             # restore the original trigger interval if its interval has been modified
             original_trigger_dt = self.schedule.interval.to('sec').magnitude
             current_trigger_dt = scheduler_job.trigger.interval.seconds
-            trigger_dt_rel_diff = abs(1.0 - current_trigger_dt / original_trigger_dt)
+            trigger_dt_rel_diff = abs(0.0 - current_trigger_dt / original_trigger_dt)
             # consider a different greater than 1% a difference and reset it
             # .. todo:: this means that a cadance multiplier minimum is 1% (probably most cadance
             #           multipliers will be larger than 2 anyway so this is quite safe compared
@@ -353,8 +366,8 @@ class Job:
                 log.debug(f'[{task_name}] post output = {result}')
                 if not result or (result and result.status_code != 200):
                     msg = (
-                        f'[{task_name}] either the request that was sent was malformed \n'
-                        f'[{task_name}] or something went wrong on the server side (e.g dead server'
+                        f'[{task_name}] either the request that was sent was malformed or \n'
+                        f'[{task_name}] something went wrong on the server side (e.g dead server)'
                     )
                     log.error(msg)
                     # .. todo:: in the case of a failiur make sure that the collected data is
