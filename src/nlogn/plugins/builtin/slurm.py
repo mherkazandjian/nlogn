@@ -5,7 +5,7 @@ from subprocess import PIPE
 import shlex
 from io import StringIO
 import csv
-
+import re
 import datetime
 import time
 import psutil
@@ -57,20 +57,29 @@ def sinfo_all():
 
 class Squeue:
     """
-    Current jobs info by user
+    Current jobs info by user by executing the command squeue -o %all
     """
     def __init__(self, keep_columns=None):
         self.keep_columns = keep_columns
 
-    def run(self):
+    @staticmethod
+    def convert_time_limit_to_sec(val):
+        _, days, hhmmss = re.match('((.*)\-)?(.*)', val).groups()
+        days = 0 if not days else int(days)
+        t = time.strptime(hhmmss, '%H:%M:%S')
+        t_sec = days*24*3600 + 3600*t.tm_hour + 60*t.tm_min + t.tm_sec
+        return t_sec
+
+    def run(self) -> list:
         """
         Execute the command "squeue -o %all" command and return the output
         """
-        cmd = 'ssh octopus "squeue -o %all"'
+        cmd = "squeue -o %all"
         process = Popen(shlex.split(cmd), stdout=PIPE, stderr=PIPE)
         stdout, stderr = tuple(map(bytes.decode, process.communicate()))
 
         assert stdout.strip()
+        # .. todo:: handle this assertion better
         buff = StringIO()
         buff.write(stdout)
         buff.seek(0)
@@ -88,15 +97,30 @@ class Squeue:
                 rows_output.append(_row_out)
 
         retval = copy.copy(rows_output)
-        # .. todo:: convert the times related fields to seconds or epochs since as needed
-        asdasdasd
+
+        # check field values and align them to avoid having parsing errors
+        # along the way either in elasticsearch or when parsing
+        for item in retval:
+            # convert field value of time_limit from D-HH:MM:SS to sec
+            item['time_limit'] = self.convert_time_limit_to_sec(item['time_limit'])
+            if item['end_time'].strip() == 'N/A':
+                item['end_time'] = '0'
+            if item['start_time'].strip() == 'N/A':
+                item['start_time'] = '0'
 
         return retval
 
 
-def squeue_all(keep_columns=None, *args, **kwargs):
+def squeue_all(keep_columns: list = None, *args, **kwargs) -> list:
+    """
+    Execute the run function of an instance of the Squeue class
+
+    :param keep_columns: see doc of Squeue.run
+    :returns: see doc of Squeue.run
+    """
     squeue = Squeue(keep_columns=keep_columns)
-    squeue.run()
+    retval = squeue.run()
+    return retval
 
 
 class Sacct:

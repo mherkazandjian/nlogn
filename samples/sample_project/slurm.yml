@@ -8,7 +8,7 @@ squeue_all:
     duration: 5s
     max_attempts: 3
   when:
-    interval: 5s
+    interval: 60s
     cadence_multiplier: 2
   nlogn.builtin.slurm.squeue_all:
     keep_columns:
