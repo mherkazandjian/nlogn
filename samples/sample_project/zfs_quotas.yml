@@ -1,0 +1,28 @@
+---
+stages:
+  - zfs
+
+zfs_user_usage_home:
+  stage: zfs
+  timeout:
+    duration: 5s
+    max_attempts: 3
+  when:
+    interval: 300s
+    cadence_multiplier: 2
+  nlogn.builtin.zfs.zfs_user_usage:
+    filesystem: home
+    keep_columns:
+      - name
+      - used
+      - quota
+      - objused
+      - objquota
+  output:
+    columns:
+      - name[keyword]
+      - used[long:KB]
+      - quota[long:KB]
+      - objused[long]
+      - objquota[long]
+...
