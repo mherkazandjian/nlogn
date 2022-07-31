@@ -50,5 +50,51 @@ squeue_all:
       - state[keyword]
       - submit_time[long]
       - work_dir[str]
-...
 
+sinfo_all:
+  stage: slurm
+  timeout:
+    duration: 5s
+    max_attempts: 3
+  when:
+    interval: 60s
+    cadence_multiplier: 2
+  nlogn.builtin.slurm.sinfo_all:
+    keep_columns:
+      - hostnames
+      - state
+      - sockets
+      - cores
+      - threads
+      - cpus
+      - cpu_load
+      - memory
+      - free_mem
+      - active_features
+      - avail_features
+      - oversubscribe
+      - timestamp
+      - preempt_mode
+      - cluster
+      - weight
+      - reason
+  output:
+    columns:
+      - hostnames[keyword]
+      - state[keyword]
+      - sockets[long]
+      - cores[long]
+      - threads[long]
+      - cpus[long]
+      - cpu_load[float]
+      - memory[long]
+      - free_mem[long]
+      - active_features[keyword]
+      - avail_features[keyword]
+      - oversubscribe[keyword]
+      - timestamp[str]
+      - preempt_mode[keyword]
+      - cluster[keyword]
+      - weight[float]
+      - reason[str]
+...

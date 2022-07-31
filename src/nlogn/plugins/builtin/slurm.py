@@ -45,22 +45,69 @@ virtual_name = {
 
 class Sinfo:
     """
-    Current nodes info - alloc,idle,
-    sinfo -N -p all  --format="%N|%t|%a|%c|%O|%z|%m|%e|%b|%E"
-    """
-    pass
+    Current nodes info and status
 
+    the following command is used to collect the output:
 
-def sinfo_all():
-    pass
-
-
-class Squeue:
-    """
-    Current jobs info by user by executing the command squeue -o %all
+        $ sinfo -o "%n|%t|%X|%Y|%Z|%c|%O|%m|%e|%b|%f|%h|%H|%M|%V|%w|%E"
     """
     def __init__(self, keep_columns=None):
         self.keep_columns = keep_columns
+        self.cmd = 'sinfo -o "%n|%t|%X|%Y|%Z|%c|%O|%m|%e|%b|%f|%h|%H|%M|%V|%w|%E"'
+
+    def run(self) -> list:
+        """
+        Execute the command, parse the output and return it
+        """
+        cmd = self.cmd
+        process = Popen(shlex.split(cmd), stdout=PIPE, stderr=PIPE)
+        stdout, stderr = tuple(map(bytes.decode, process.communicate()))
+
+        assert stdout.strip()
+        # .. todo:: handle this assertion better
+        buff = StringIO()
+        buff.write(stdout)
+        buff.seek(0)
+
+        # filter out / keep only the columns of interest
+        rows_output = []
+        with buff:
+            data = list(csv.reader(buff, delimiter='|', ))
+            header, rows = list(map(str.strip, map(str.lower, data[0]))), data[1:]
+            for row in rows:
+                _row_out = {}
+                for col_name, val in zip(header, row):
+                    if col_name in self.keep_columns:
+                        _row_out[col_name] = val
+                rows_output.append(_row_out)
+
+        retval = copy.copy(rows_output)
+
+        return retval
+
+
+def sinfo_all(keep_columns: list = None, *args, **kwargs) -> list:
+    """
+    Execute the run function of an instance of the Sinfo class
+
+    :param keep_columns: see doc of Squeue.run
+    :returns: see doc of Squeue.run
+    """
+    sinfo = Sinfo(keep_columns=keep_columns)
+    retval = sinfo.run()
+    return retval
+
+class Squeue:
+    """
+    Current jobs info of users
+
+    the following command is used to collect the output:
+
+       $ squeue -o %all
+    """
+    def __init__(self, keep_columns=None):
+        self.keep_columns = keep_columns
+        self.cmd = "squeue -o %all"
 
     @staticmethod
     def convert_time_limit_to_sec(val):
@@ -72,9 +119,9 @@ class Squeue:
 
     def run(self) -> list:
         """
-        Execute the command "squeue -o %all" command and return the output
+        Execute the command, parse the output and return it
         """
-        cmd = "squeue -o %all"
+        cmd = self.cmd
         process = Popen(shlex.split(cmd), stdout=PIPE, stderr=PIPE)
         stdout, stderr = tuple(map(bytes.decode, process.communicate()))
 
