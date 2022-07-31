@@ -73,8 +73,10 @@ class Job:
             output = 'success', _callable(**_kwargs)
             dt = time.time() - t0
             log.debug(f'[{self.task_name}] callable for task finished in {dt:5.2}s')
-        except:
+        except BaseException as exc:
             output = 'failed', None
+            log.debug(f'raised except is: {exc}')
+            log.debug(exc, exc_info=True)
 
         return output
 
