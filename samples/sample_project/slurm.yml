@@ -97,4 +97,19 @@ sinfo_all:
       - cluster[keyword]
       - weight[float]
       - reason[str]
+
+sreport_all:
+  stage: slurm
+  timeout:
+    duration: 60s
+    max_attempts: 3
+  when:
+    interval: 300s
+    cadence_multiplier: 2
+  nlogn.builtin.slurm.sreport_all:
+    period: 'current day'
+  output:
+    columns:
+      - username[keyword]
+      - hours[long]
 ...

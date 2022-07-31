@@ -7,6 +7,7 @@ from io import StringIO
 import csv
 import re
 import datetime
+from dateutil import relativedelta
 import time
 import psutil
 
@@ -20,7 +21,7 @@ from nlogn.units import u
 virtual_name = {
     'squeue_all': 'squeue_all',
     'sinfo_all': 'sinfo_all',
-    'sacct_info': 'sacct_info'
+    'sreport_all': 'sreport_all'
     # .. todo:: by default the key should have the same name as the module.py
     # .. todo::
     # .. todo:: in case more than one class is defined in the .py file
@@ -90,8 +91,8 @@ def sinfo_all(keep_columns: list = None, *args, **kwargs) -> list:
     """
     Execute the run function of an instance of the Sinfo class
 
-    :param keep_columns: see doc of Squeue.run
-    :returns: see doc of Squeue.run
+    :param keep_columns: see doc of Sinfo.run
+    :returns: see doc of Sinfo.run
     """
     sinfo = Sinfo(keep_columns=keep_columns)
     retval = sinfo.run()
@@ -170,12 +171,75 @@ def squeue_all(keep_columns: list = None, *args, **kwargs) -> list:
     return retval
 
 
-class Sacct:
+class Sreport:
     """
-    Core hours usage by user, dept, group
+    Core hours usage by user
     """
-    pass
+    def __init__(self, period: str = None):
+        self.period = period
+        self.cmd = "sreport -P -n -t hour cluster AccountUtilizationByUser"
+
+    def run(self) -> list:
+        """
+        Execute the command, parse the output and return it
+        """
+        t_now = datetime.datetime.utcnow()
+
+        if self.period == 'current day':
+            delta = relativedelta.relativedelta(days=1)
+            start_date = t_now.strftime('%Y-%m-%d')
+            end_date = (t_now + delta).strftime('%Y-%m-%d')
+        elif self.period == 'current month':
+            delta = relativedelta.relativedelta(months=1)
+            start_date = t_now.strftime('%Y-%m-01')
+            end_date = (t_now + delta).strftime('%Y-%m-01')
+        elif self.period == 'current year':
+            delta = relativedelta.relativedelta(years=1)
+            start_date = t_now.strftime('%Y-01-01')
+            end_date = (t_now + delta).strftime('%Y-01-01')
+        else:
+            raise ValueError(f'period *{self.period}* is not supported')
+
+        cmd = f'{self.cmd} start={start_date} end={end_date}'
+        process = Popen(shlex.split(cmd), stdout=PIPE, stderr=PIPE)
+        stdout, stderr = tuple(map(bytes.decode, process.communicate()))
+
+        assert stdout.strip()
+        # .. todo:: handle this assertion better
+        buff = StringIO()
+        buff.write(stdout)
+        buff.seek(0)
+
+        # filter out / keep only the columns of interest (user and hours)
+        # include each user once
+        rows_output = []
+        with buff:
+            rows = list(csv.reader(buff, delimiter='|', ))
+            processed_users = set()
+            for row in rows:
+                _, username, _, _, hours, _ = row
+                if username in processed_users:
+                    continue
+                else:
+                    processed_users.add(username)
+
+                _row_out = {
+                    'username': username,
+                    'hours': int(hours)
+                }
+                rows_output.append(_row_out)
+
+        retval = copy.copy(rows_output)
+
+        return retval
 
 
-def sacct_info():
-    pass
+def sreport_all(period: str = None, *args, **kwargs) -> list:
+    """
+    Execute the run function of an instance of the Sreport class
+
+    :returns: see doc of Sreport.run
+    """
+    sreport = Sreport(period=period)
+    retval = sreport.run()
+    return retval
