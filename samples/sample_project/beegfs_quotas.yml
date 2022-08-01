@@ -1,0 +1,23 @@
+---
+stages:
+  - beegfs
+
+beegfs_user_usage_scratch:
+  stage: beegfs
+  timeout:
+    duration: 120s
+    max_attempts: 3
+  when:
+    interval: 300s
+    cadence_multiplier: 2
+  nlogn.builtin.beegfs.beegfs_user_usage:
+    storagepoolid: 1
+  output:
+    columns:
+      - name[keyword]
+      - uid[long]
+      - used[long:KB]
+      - quota[long:KB]
+      - filesused[long]
+      - filesquota[long]
+...
