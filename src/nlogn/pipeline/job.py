@@ -186,16 +186,20 @@ class Job:
             # get the hostname
             hostname = socket.gethostname()
 
-            # check the returned type of the result and put it in a list
-            # if it is a dict and assign it to a variable expected to be
-            # used later on
-            if isinstance(result, dict):
+            # check the returned type of the result and put it in a list if it
+            # is not a list e.g a dict or a string and assign it to a variable
+            # expected to be used later on
+            if isinstance(result, (dict, str)):
                 results = [result]
             elif isinstance(result, list):
                 results = result
             else:
                 raise ValueError(
-                    f'unsupported result: expected "dict" or "list" got "{type(result)}"'
+                    f'unsupported result: expected "dict" or "list" got "{type(result)}"\n'
+                    f'the result is\n'
+                    f'-----------------------------------\n'
+                    f'{result}\n'
+                    f'-----------------------------------\n'
                 )
 
             for _result in results:
