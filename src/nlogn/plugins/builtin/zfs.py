@@ -46,7 +46,6 @@ class ZfsUserUsage:
         Execute the command, parse the output and return it
         """
         cmd = self.cmd
-        print(cmd)
         process = Popen(shlex.split(cmd), stdout=PIPE, stderr=PIPE)
         stdout, stderr = tuple(map(bytes.decode, process.communicate()))
 
@@ -87,7 +86,7 @@ class ZfsUserUsage:
 
 def zfs_user_usage(filesystem: str = None, keep_columns=None, *args, **kwargs) -> list:
     """
-    Execute the run function of an instance of the Sreport class
+    Execute the run function of an instance of the ZfsUserUsage class
 
     :returns: see doc of ZfsUserUsage
     """
