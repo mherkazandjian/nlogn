@@ -79,6 +79,8 @@ class Sinfo:
                 _row_out = {}
                 for col_name, val in zip(header, row):
                     if col_name in self.keep_columns:
+                        if val.strip() == 'N/A':
+                            val = ''
                         _row_out[col_name] = val
                 rows_output.append(_row_out)
 
