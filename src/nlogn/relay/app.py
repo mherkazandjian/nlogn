@@ -75,14 +75,22 @@ def relay_data():
                         "type": "date",
                         "format": "strict_date_optional_time||epoch_millis"
                     },
-                    "hostname": {"type": "keyword"},
+                    "hostname": {"type": "keyword"}
                 }
 
                 for field_name in item['output']:
                     field_type = item['columns'][field_name]
                     index_mapping[field_name] = {"type": field_type}
 
+                # create the empyt index with the mapping
                 esdb.create_index(name=index_name, mapping=index_mapping)
+                # .. todo:: if this fails with an error the index is created
+                #           without a mapping. the index should be deleted
+                #           it is empty anyway and this would avoid this if
+                #           statement next time around since the index would
+                #           be created that is not what we need since next
+                #           time data will be put in it and a default mapping
+                #           will be set
 
             document = item['output']
             document['timestamp'] = item['timestamp']

@@ -555,7 +555,7 @@ class Database_v7(DatabaseBase):
     """
     def create_index(self, name=None, mapping=None, **kwargs):
         """
-        Create an empty index for elasticsearch v6 (see self.create_index)
+        Create an empty index for elasticsearch v7 (see self.create_index)
         """
         self.db.indices.create(index=name)
         self.db.indices.put_mapping(

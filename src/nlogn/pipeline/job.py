@@ -56,23 +56,37 @@ class Job:
     def current_timestamp(self):
         pass
 
-    async def _run(self):
+    def get_callable(self):
+        """
+        Return the callable and the input arguments
+        """
         if self.exec_cls:
             instance = self.exec_cls(**self.input)
             _callable = instance.run
+            _kwargs = {}
         elif self.exec_func:
             _callable = self.exec_func
+            _kwargs = self.input
         else:
             raise ValueError('either a exec class of a callable should be set')
 
-        # run the exec class in a safe manner
+        return _callable, _kwargs
+
+    async def _run(self):
+        """
+        Run the callable safely and return the output along with the status
+        """
+        _callable, _kwargs = self.get_callable()
+
         try:
             t0 = time.time()
-            output = 'success', _callable()
+            output = 'success', _callable(**_kwargs)
             dt = time.time() - t0
             log.debug(f'[{self.task_name}] callable for task finished in {dt:5.2}s')
-        except:
+        except BaseException as exc:
             output = 'failed', None
+            log.debug(f'raised except is: {exc}')
+            log.debug(exc, exc_info=True)
 
         return output
 
@@ -103,6 +117,30 @@ class Job:
         )
 
         return scheduler_job
+
+    @staticmethod
+    def wrap_results(result):
+        """
+        Wrap the result into a list depending on the type of "results"
+
+        The returned result is always a list
+        """
+        # check the returned type of the result and put it in a list if it
+        # is not a list e.g a dict or a string and assign it to a variable
+        # expected to be used later on
+        if isinstance(result, (dict, str)):
+            results = [result]
+        elif isinstance(result, list):
+            results = result
+        else:
+            raise ValueError(
+                f'unsupported result: expected "dict" or "list" got "{type(result)}"\n'
+                f'the result is\n'
+                f'-----------------------------------\n'
+                f'{result}\n'
+                f'-----------------------------------\n'
+            )
+        return results
 
     async def run(self,
                   cluster: str = '',
@@ -182,16 +220,22 @@ class Job:
             # get the hostname
             hostname = socket.gethostname()
 
-            # run the transforms stack
-            transformed_output = self.transform(result)
+            # wrap the result into a list
+            results = self.wrap_results(result)
 
-            # check that the transformed data is in line with the expected columns
-            # and do the unit conversion and prepare the type info to be appended to the ouput
-            prepared_outputs, columns_info = self.prepare_outputs(transformed_output)
+            # - run the transformation on the results
+            # - check that the column names are in line with the expected output
+            # - append the results to the outputs list
+            for _result in results:
+                # run the transforms stack
+                transformed_output = self.transform(_result)
 
-            # store the output that is ready to be dispatched
-            self.outputs.append(
-                {
+                # check that the transformed data is in line with the expected columns
+                # and do the unit conversion and prepare the type info to be appended to the ouput
+                prepared_outputs, columns_info = self.prepare_outputs(transformed_output)
+
+                # store the output that is ready to be dispatched
+                output = {
                     'timestamp': timestamp_str,
                     'hostname': hostname,
                     'output': prepared_outputs,
@@ -199,12 +243,13 @@ class Job:
                     'name': self.task_name,
                     'cluster': cluster
                 }
-            )
+
+                self.outputs.append(output)
 
             # restore the original trigger interval if its interval has been modified
             original_trigger_dt = self.schedule.interval.to('sec').magnitude
             current_trigger_dt = scheduler_job.trigger.interval.seconds
-            trigger_dt_rel_diff = abs(1.0 - current_trigger_dt / original_trigger_dt)
+            trigger_dt_rel_diff = abs(0.0 - current_trigger_dt / original_trigger_dt)
             # consider a different greater than 1% a difference and reset it
             # .. todo:: this means that a cadance multiplier minimum is 1% (probably most cadance
             #           multipliers will be larger than 2 anyway so this is quite safe compared
@@ -230,10 +275,6 @@ class Job:
 
             _dt = time.time() - _t0
             log.debug(f'[{self.task_name}] total time running {_dt:5.2f}s')
-
-        #for task in asyncio.tasks.all_tasks():
-        #    if task.done():
-        #        tas
 
         log.debug(f'[{self.task_name}] {len(asyncio.tasks.all_tasks())} task(s) in the asyncio loop ')
 
@@ -266,7 +307,7 @@ class Job:
         diff = expected_col_names - output_col_names
         if diff:
             for name in diff:
-                log.error(f'the following column name is inconsistent {name}')
+                log.error(f'the following column name is inconsistent *{name}*')
             raise ValueError('there is an inconsistency between the transformed data and the expected columns')
 
         columns_info = {}
@@ -351,8 +392,8 @@ class Job:
                 log.debug(f'[{task_name}] post output = {result}')
                 if not result or (result and result.status_code != 200):
                     msg = (
-                        f'[{task_name}] either the request that was sent was malformed \n'
-                        f'[{task_name}] or something went wrong on the server side (e.g dead server'
+                        f'[{task_name}] either the request that was sent was malformed or \n'
+                        f'[{task_name}] something went wrong on the server side (e.g dead server)'
                     )
                     log.error(msg)
                     # .. todo:: in the case of a failiur make sure that the collected data is

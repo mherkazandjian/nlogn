@@ -94,14 +94,31 @@ class ExecModule:
 
         :return: referenced var names
         """
+        def find_vars(value):
+            """
+            Keep and return tokens in value that start with $
+                - non string value are ignored (since they can not be split)
+            """
+            if isinstance(value, str):
+                retval = list(filter(lambda x: x.startswith('$'), value.split(' ')))
+            else:
+                retval = list()
+            return retval
+
+        # .. todo:: keys are ignoed and no var (token staring with $) is looked
+        #           up for. Think if that might come in handy in some situations
         variables = []
         attr_v = getattr(self, attr)
         for key, value in attr_v.items():
+
             if isinstance(value, (list, tuple)):
-                for item in value:
-                    variables.extend(list(filter(lambda x: x.startswith('$'), item.split(' '))))
+                _value = value
             else:
-                variables.extend(list(filter(lambda x: x.startswith('$'), value.split(' '))))
+                _value = [value]
+
+            for item in _value:
+                variables.extend(find_vars(item))
+
         return tuple(variables)
 
     def replace_variables(self, variables: dict = None):

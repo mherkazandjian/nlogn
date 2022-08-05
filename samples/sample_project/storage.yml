@@ -2,8 +2,6 @@
 stages:
   - disks
   - nfs
-  - ceph
-
 
 .disk_usage_base:
   stage: disks

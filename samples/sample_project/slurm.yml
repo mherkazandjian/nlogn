@@ -1,0 +1,113 @@
+---
+stages:
+  - slurm
+
+squeue_all:
+  stage: slurm
+  timeout:
+    duration: 5s
+    max_attempts: 3
+  when:
+    interval: 60s
+    cadence_multiplier: 2
+  nlogn.builtin.slurm.squeue_all:
+    keep_columns:
+      - account
+      - end_time
+      - jobid
+      - name
+      - time_limit
+      - command
+      - priority
+      - reason
+      - cpus
+      - nodes
+      - array_job_id
+      - time
+      - nodelist
+      - partition
+      - start_time
+      - state
+      - submit_time
+      - work_dir
+  output:
+    columns:
+      - account[keyword]
+      - end_time[text]
+      - jobid[long]
+      - name[text]
+      - time_limit[long]
+      - command[text]
+      - priority[float]
+      - reason[text]
+      - cpus[long]
+      - nodes[long]
+      - array_job_id[long]
+      - time[text]
+      - nodelist[text]
+      - partition[keyword]
+      - start_time[text]
+      - state[keyword]
+      - submit_time[text]
+      - work_dir[text]
+
+sinfo_all:
+  stage: slurm
+  timeout:
+    duration: 5s
+    max_attempts: 3
+  when:
+    interval: 60s
+    cadence_multiplier: 2
+  nlogn.builtin.slurm.sinfo_all:
+    keep_columns:
+      - hostnames
+      - state
+      - sockets
+      - cores
+      - threads
+      - cpus
+      - cpu_load
+      - memory
+      - free_mem
+      - active_features
+      - avail_features
+      - oversubscribe
+      - preempt_mode
+      - cluster
+      - weight
+      - reason
+  output:
+    columns:
+      - hostnames[keyword]
+      - state[keyword]
+      - sockets[long]
+      - cores[long]
+      - threads[long]
+      - cpus[long]
+      - cpu_load[float]
+      - memory[long]
+      - free_mem[long]
+      - active_features[keyword]
+      - avail_features[keyword]
+      - oversubscribe[keyword]
+      - preempt_mode[keyword]
+      - cluster[keyword]
+      - weight[float]
+      - reason[text]
+
+sreport_all:
+  stage: slurm
+  timeout:
+    duration: 60s
+    max_attempts: 3
+  when:
+    interval: 300s
+    cadence_multiplier: 2
+  nlogn.builtin.slurm.sreport_all:
+    period: 'current day'
+  output:
+    columns:
+      - username[keyword]
+      - hours[long]
+...
