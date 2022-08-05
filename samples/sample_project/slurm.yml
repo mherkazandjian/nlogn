@@ -33,23 +33,23 @@ squeue_all:
   output:
     columns:
       - account[keyword]
-      - end_time[long]
+      - end_time[text]
       - jobid[long]
-      - name[str]
+      - name[text]
       - time_limit[long]
-      - command[str]
+      - command[text]
       - priority[float]
-      - reason[str]
+      - reason[text]
       - cpus[long]
       - nodes[long]
       - array_job_id[long]
-      - time[long]
-      - nodelist[str]
+      - time[text]
+      - nodelist[text]
       - partition[keyword]
-      - start_time[long]
+      - start_time[text]
       - state[keyword]
-      - submit_time[long]
-      - work_dir[str]
+      - submit_time[text]
+      - work_dir[text]
 
 sinfo_all:
   stage: slurm
@@ -73,7 +73,6 @@ sinfo_all:
       - active_features
       - avail_features
       - oversubscribe
-      - timestamp
       - preempt_mode
       - cluster
       - weight
@@ -92,11 +91,10 @@ sinfo_all:
       - active_features[keyword]
       - avail_features[keyword]
       - oversubscribe[keyword]
-      - timestamp[str]
       - preempt_mode[keyword]
       - cluster[keyword]
       - weight[float]
-      - reason[str]
+      - reason[text]
 
 sreport_all:
   stage: slurm
