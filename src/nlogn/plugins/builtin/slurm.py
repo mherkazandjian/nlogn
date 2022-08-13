@@ -181,30 +181,16 @@ class Sreport:
         self.period = period
         self.cmd = "sreport -P -n -t hour cluster AccountUtilizationByUser"
 
-    def run(self) -> list:
+    def run_date_range(self, start=None, end=None):
         """
-        Execute the command, parse the output and return it
+        Run the sreport command on a custom start and end date
+
+        :param start: the start date
+        :param end: the end date
         """
-        t_now = datetime.datetime.utcnow()
-
-        if self.period == 'current day':
-            delta = relativedelta.relativedelta(days=1)
-            start_date = t_now.strftime('%Y-%m-%d')
-            end_date = (t_now + delta).strftime('%Y-%m-%d')
-        elif self.period == 'current month':
-            delta = relativedelta.relativedelta(months=1)
-            start_date = t_now.strftime('%Y-%m-01')
-            end_date = (t_now + delta).strftime('%Y-%m-01')
-        elif self.period == 'current year':
-            delta = relativedelta.relativedelta(years=1)
-            start_date = t_now.strftime('%Y-01-01')
-            end_date = (t_now + delta).strftime('%Y-01-01')
-        else:
-            raise ValueError(f'period *{self.period}* is not supported')
-
-        cmd = f'{self.cmd} start={start_date} end={end_date}'
+        cmd = f'{self.cmd} start={start} end={end}'
         process = Popen(shlex.split(cmd), stdout=PIPE, stderr=PIPE)
-        stdout, stderr = tuple(map(bytes.decode, process.communicate()))
+        stdout, _ = tuple(map(bytes.decode, process.communicate()))
 
         assert stdout.strip()
         # .. todo:: handle this assertion better
@@ -234,6 +220,29 @@ class Sreport:
         retval = copy.copy(rows_output)
 
         return retval
+
+    def run(self) -> list:
+        """
+        Execute the command, parse the output and return it
+        """
+        t_now = datetime.datetime.utcnow()
+
+        if self.period == 'current day':
+            delta = relativedelta.relativedelta(days=1)
+            start_date = t_now.strftime('%Y-%m-%d')
+            end_date = (t_now + delta).strftime('%Y-%m-%d')
+        elif self.period == 'current month':
+            delta = relativedelta.relativedelta(months=1)
+            start_date = t_now.strftime('%Y-%m-01')
+            end_date = (t_now + delta).strftime('%Y-%m-01')
+        elif self.period == 'current year':
+            delta = relativedelta.relativedelta(years=1)
+            start_date = t_now.strftime('%Y-01-01')
+            end_date = (t_now + delta).strftime('%Y-01-01')
+        else:
+            raise ValueError(f'period *{self.period}* is not supported')
+
+        return self.run_date_range(start=start_date, end=end_date)
 
 
 def sreport_all(period: str = None, *args, **kwargs) -> list:
