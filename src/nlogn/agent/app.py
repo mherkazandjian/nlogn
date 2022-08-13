@@ -15,6 +15,7 @@ from nlogn.pipeline.task import TaskRenderer
 def main():
     args = parse_args()
 
+    # write the flags passed on the cmd line and configs through the logger
     log.info(f'relay host: {args.relay_host}')
     log.info(f'config: {args.conf}')
     log.info(f'username: {args.username}')
@@ -22,6 +23,7 @@ def main():
     log.info(f'pipelines: {args.pipelines}')
     log.info(f'certificate: {args.trusted_certificate}')
     log.info(f'cluster: {args.cluster}')
+    # .. todo:: write the content of the config file too
 
     conf = None
     if args.conf:
