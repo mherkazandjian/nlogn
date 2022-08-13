@@ -5,6 +5,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from requests.auth import HTTPBasicAuth
 
+from nlogn import log
 from nlogn.conf import Config
 from nlogn.agent.argparser import parse_args
 from nlogn.pipeline.pipeline import Pipeline
@@ -13,6 +14,14 @@ from nlogn.pipeline.task import TaskRenderer
 
 def main():
     args = parse_args()
+
+    log.info(f'relay host: {args.relay_host}')
+    log.info(f'config: {args.conf}')
+    log.info(f'username: {args.username}')
+    log.info(f'password: {args.password}')
+    log.info(f'pipelines: {args.pipelines}')
+    log.info(f'certificate: {args.trusted_certificate}')
+    log.info(f'cluster: {args.cluster}')
 
     conf = None
     if args.conf:
