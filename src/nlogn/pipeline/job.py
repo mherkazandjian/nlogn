@@ -343,11 +343,14 @@ class Job:
         task_name = self.task_name + '_dispatch'
         try:
             log.debug(f'[{task_name}]: try post data using requests')
+            data = json.dumps(outputs)
+            log.debug('json data that will be posted to the relay server')
+            log.debug(f'{data}')
             response = requests.post(
                 connection['url'],
                 auth=connection['auth'],
                 headers=connection['headers'],
-                data=json.dumps(outputs),
+                data=data,
                 verify=connection['cert'],
             )
             retval = 'success', response

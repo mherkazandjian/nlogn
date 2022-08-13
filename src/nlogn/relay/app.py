@@ -6,15 +6,16 @@ from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash
 from werkzeug.security import check_password_hash
 
+from nlogn import log
 from nlogn.database.database import Database
 
 assert 'DATABASE' in os.environ
 url = os.environ.get('DATABASE')  # localhost:9200'
 esdb = Database(url=url)
 
-print('indices in the database:')
+log.info('indices in the database:')
 for _index_name in esdb.indices():
-    print(f'\t{_index_name}')
+    log.info(f'\t{_index_name}')
 
 app = Flask(__name__)
 auth = HTTPBasicAuth()
@@ -31,9 +32,9 @@ if os.path.isfile(_users_auth_file):
 users = users_credentials
 
 # registered users
-print('list of registered users')
+log.info('list of registered users')
 for user, pass_hash in users.items():
-    print(f'\t{user}:{pass_hash}')
+    log.info(f'\t{user}:{pass_hash}')
 
 
 @auth.verify_password
@@ -55,8 +56,8 @@ def relay_data():
     content_type = request.headers.get('Content-Type')
     if content_type == 'application/json':
         data = request.json
-        print('got the following json data')
-        print('\t', data)
+        log.debug('got the following json data')
+        log.debug(f'\t{data}')
 
         for item in data:
 
@@ -83,7 +84,9 @@ def relay_data():
                     index_mapping[field_name] = {"type": field_type}
 
                 # create the empyt index with the mapping
-                esdb.create_index(name=index_name, mapping=index_mapping)
+                response = esdb.create_index(name=index_name, mapping=index_mapping)
+                log.debug(f'create new index {index_name}')
+                log.debug(f'{response}')
                 # .. todo:: if this fails with an error the index is created
                 #           without a mapping. the index should be deleted
                 #           it is empty anyway and this would avoid this if
@@ -97,11 +100,16 @@ def relay_data():
             document['hostname'] = item['hostname']
 
             #esdb.delete_index(index_name, verbose=True)
-            print(esdb.db.index(index=index_name, document=document))
+            log.debug(f'document to be indexed')
+            log.debug(f'\t{document}')
+            response = esdb.db.index(index=index_name, document=document)
+            log.debug(f'{response}')
 
         return 'success'
     else:
-        return 'Content-Type not supported!'
+        msg = 'Content-Type not supported!'
+        log.error(msg)
+        return msg
 
 
 if __name__ == '__main__':
