@@ -244,7 +244,10 @@ class Job:
                     'cluster': cluster
                 }
 
+                log.debug('assembled output')
+                log.debug(f'{output}')
                 self.outputs.append(output)
+                log.debug(f'buffered output items {len(self.outputs)}')
 
             # restore the original trigger interval if its interval has been modified
             original_trigger_dt = self.schedule.interval.to('sec').magnitude
