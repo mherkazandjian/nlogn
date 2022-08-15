@@ -190,10 +190,14 @@ class Sreport:
         """
         cmd = f'{self.cmd} start={start} end={end}'
         process = Popen(shlex.split(cmd), stdout=PIPE, stderr=PIPE)
-        stdout, _ = tuple(map(bytes.decode, process.communicate()))
+        stdout, stderr = tuple(map(bytes.decode, process.communicate()))
 
         assert stdout.strip()
         # .. todo:: handle this assertion better
+        # .. todo:: if there is not data, then stdout is expected to be empty
+        #           in this case if stderr is empty as well, then not data
+        #           should be returned and not error should be raised
+
         buff = StringIO()
         buff.write(stdout)
         buff.seek(0)

@@ -24,9 +24,11 @@ class Mapping:
         'date': numpy.datetime64
     }
 
-    def __init__(self, mapping):
+    def __init__(self, mapping: dict = None):
         """
         Constructor
+
+        :param a mapping that defines the type of each key
         """
         self.mapping = mapping
 
@@ -41,6 +43,12 @@ class Mapping:
             for field, field_el_type in self.mapping.items()
         }
         return retval
+
+    def to_elsticsearch(self, numpy_types):
+        """
+        Convert a list of numpy types to elasticsearch mapping type
+        """
+        raise NotImplementedError('not implemented yet')
 
 
 class DatabaseBase:
@@ -556,6 +564,21 @@ class Database_v7(DatabaseBase):
     def create_index(self, name=None, mapping=None, **kwargs):
         """
         Create an empty index for elasticsearch v7 (see self.create_index)
+
+        .. code-block:: python
+
+            es.create_index(
+                name='foo',
+                mapping={
+                    'timestamp': {
+                            'type': 'date',
+                            'format': 'strict_date_optional_time||epoch_millis'
+                    },
+                    'mycol1': {'type': 'float'},
+                    'mycol2': {'type': 'keyword'},
+                    'mycol3': {'type': 'long'},
+                }
+            )
         """
         self.db.indices.create(index=name)
         self.db.indices.put_mapping(
@@ -580,7 +603,7 @@ class Database_v7(DatabaseBase):
                     col_name: row[col_name] for col_name in df.columns
                 }
             }
-            for row_index, row in df.iterrows()
+            for _, row in df.iterrows()
         ]
 
         while True:
