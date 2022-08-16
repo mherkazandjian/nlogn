@@ -231,11 +231,11 @@ class Sreport:
         """
         t_now = datetime.datetime.utcnow()
 
-        if self.period == 'current hour':
+        if self.period == 'current hour' :
             delta = relativedelta.relativedelta(hours=1)
             start_date = t_now.strftime('%Y-%m-%dT%H:00:00')
             end_date = (t_now + delta).strftime('%Y-%m-%dT%H:00:00')
-        if self.period == 'current day':
+        elif self.period == 'current day':
             delta = relativedelta.relativedelta(days=1)
             start_date = t_now.strftime('%Y-%m-%d')
             end_date = (t_now + delta).strftime('%Y-%m-%d')
