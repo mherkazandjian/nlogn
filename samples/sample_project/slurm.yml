@@ -105,7 +105,8 @@ sreport_all:
     interval: 300s
     cadence_multiplier: 2
   nlogn.builtin.slurm.sreport_all:
-    period: 'current day'
+    period: 'current hour'
+    time_offset: 0
   output:
     columns:
       - username[keyword]

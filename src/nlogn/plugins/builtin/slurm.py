@@ -177,8 +177,15 @@ class Sreport:
     """
     Core hours usage by user
     """
-    def __init__(self, period: str = None):
+    def __init__(self, period: str = None, time_offset: int = 0):
+        """
+        Constructor
+
+        :param period: the period to be dumped (e.g current_hour)
+        :param time_offset: the time offset in hours to account for the timezone
+        """
         self.period = period
+        self.time_offset = time_offset
         self.cmd = "sreport -P -n -t hour cluster AccountUtilizationByUser"
 
     def run_date_range(self, start=None, end=None):
@@ -230,23 +237,24 @@ class Sreport:
         Execute the command, parse the output and return it
         """
         t_now = datetime.datetime.utcnow()
+        time_offset = relativedelta.relativedelta(hours=self.time_offset)
 
         if self.period == 'current hour' :
             delta = relativedelta.relativedelta(hours=1)
-            start_date = t_now.strftime('%Y-%m-%dT%H:00:00')
-            end_date = (t_now + delta).strftime('%Y-%m-%dT%H:00:00')
+            start_date = (t_now - time_offset).strftime('%Y-%m-%dT%H:00:00')
+            end_date = (t_now + delta - time_offset).strftime('%Y-%m-%dT%H:00:00')
         elif self.period == 'current day':
             delta = relativedelta.relativedelta(days=1)
-            start_date = t_now.strftime('%Y-%m-%d')
-            end_date = (t_now + delta).strftime('%Y-%m-%d')
+            start_date = (t_now - time_offset).strftime('%Y-%m-%d')
+            end_date = (t_now + delta - time_offset).strftime('%Y-%m-%d')
         elif self.period == 'current month':
             delta = relativedelta.relativedelta(months=1)
-            start_date = t_now.strftime('%Y-%m-01')
-            end_date = (t_now + delta).strftime('%Y-%m-01')
+            start_date = (t_now - time_offset).strftime('%Y-%m-01')
+            end_date = (t_now + delta - time_offset).strftime('%Y-%m-01')
         elif self.period == 'current year':
             delta = relativedelta.relativedelta(years=1)
-            start_date = t_now.strftime('%Y-01-01')
-            end_date = (t_now + delta).strftime('%Y-01-01')
+            start_date = (t_now - time_offset).strftime('%Y-01-01')
+            end_date = (t_now + delta - time_offset).strftime('%Y-01-01')
         else:
             raise ValueError(f'period *{self.period}* is not supported')
 
