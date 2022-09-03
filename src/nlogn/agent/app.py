@@ -45,9 +45,12 @@ def main():
     }
 
     #logging.getLogger('apscheduler').setLevel(logging.DEBUG)
+    misfire_grace_time = 60  # .. todo:: put this in the conf file
     loop = asyncio.new_event_loop()
-    scheduler = AsyncIOScheduler(event_loop=loop)
-    misfire_grace_time = 30  # .. todo:: put this in the conf file
+    scheduler = AsyncIOScheduler(
+        event_loop=loop,
+        job_defaults={'misfire_grace_time': misfire_grace_time}
+    )
 
     for pipeline_path in args.pipelines.split(','):
         pipeline = Pipeline(pipeline_path)
