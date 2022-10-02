@@ -64,6 +64,15 @@ def parse_args():
     )
 
     parser.add_argument(
+        "--conf",
+        type=str,
+        default='',
+        dest="conf",
+        help="the path to the configuration file of the relay server"
+    )
+
+
+    parser.add_argument(
         "-v",
         "--verbosity",
         action='count',

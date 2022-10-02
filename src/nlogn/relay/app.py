@@ -7,10 +7,29 @@ from werkzeug.security import generate_password_hash
 from werkzeug.security import check_password_hash
 
 from nlogn import log
+from nlogn.conf import Config
 from nlogn.database.database import Database
+
+# write the flags passed on the cmd line to the wrapper and passed
+# here as env vars
+users_auth = os.environ.get('USERS')
 
 assert 'DATABASE' in os.environ
 url = os.environ.get('DATABASE')  # localhost:9200'
+conf = os.environ.get('CONF', None)
+
+log.info('arguments passed on the cmd line and env vars:')
+log.info('----------------------------------------------')
+log.info(f'users: {users_auth}')
+log.info(f'database: {url}')
+log.info(f'conf: {conf}')
+log.info('----------------------------------------------')
+# .. todo:: write the content of the config file too
+
+config = None
+if conf:
+    config = Config(os.path.expanduser(conf))
+
 esdb = Database(url=url)
 
 log.info('indices in the database:')
@@ -20,7 +39,6 @@ for _index_name in esdb.indices():
 app = Flask(__name__)
 auth = HTTPBasicAuth()
 
-users_auth = os.environ.get('USERS')
 _users_auth_file = os.path.expanduser(users_auth)
 
 users_credentials = {}
@@ -99,7 +117,9 @@ def relay_data():
             document['timestamp'] = item['timestamp']
             document['hostname'] = item['hostname']
 
-            #esdb.delete_index(index_name, verbose=True)
+            ### DEV: WARNING!!!
+            #####esdb.delete_index(index_name, verbose=True)
+            ### END DEV
             log.debug(f'document to be indexed')
             log.debug(f'\t{document}')
             response = esdb.db.index(index=index_name, document=document)
@@ -114,3 +134,6 @@ def relay_data():
 
 if __name__ == '__main__':
     app.run()
+    if config:
+        config.stop_observer()
+

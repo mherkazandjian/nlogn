@@ -24,6 +24,7 @@ def main():
     env = os.environ.copy()
     env['USERS'] = args.users
     env['DATABASE'] = args.database
+    env['CONF'] = args.conf
     env['FLASK_APP'] = os.path.join(os.path.dirname(relay.__file__), 'app.py')
 
     process = Popen(
