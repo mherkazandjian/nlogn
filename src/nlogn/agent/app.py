@@ -13,9 +13,12 @@ from nlogn.pipeline.task import TaskRenderer
 
 
 def main():
+
     args = parse_args()
 
     # write the flags passed on the cmd line and configs through the logger
+    log.info('arguments passed on the cmd line:')
+    log.info('---------------------------------')
     log.info(f'relay host: {args.relay_host}')
     log.info(f'config: {args.conf}')
     log.info(f'username: {args.username}')
@@ -23,11 +26,12 @@ def main():
     log.info(f'pipelines: {args.pipelines}')
     log.info(f'certificate: {args.trusted_certificate}')
     log.info(f'cluster: {args.cluster}')
+    log.info('---------------------------------')
     # .. todo:: write the content of the config file too
 
-    conf = None
+    config = None
     if args.conf:
-        conf = Config(os.path.expanduser(args.conf))
+        config = Config(os.path.expanduser(args.conf))
 
     url = f'{args.relay_host}/relay_data'
     auth = HTTPBasicAuth(args.username, args.password)
@@ -93,8 +97,8 @@ def main():
     scheduler.start()
     loop.run_forever()
 
-    if conf:
-        conf.stop_observer()
+    if config:
+        config.stop_observer()
 
 
 
